@@ -45,8 +45,10 @@ add_executable(sentinel.elf
     # Drivers
     ${SRC_DIR}/drivers/uart_lm3s6965.c
     ${SRC_DIR}/drivers/gpio_lm3s6965.c
+    ${SRC_DIR}/drivers/sensor_sim.c
     # Application
     ${SRC_DIR}/app/main.c
+    ${SRC_DIR}/app/task_sensor.c
 )
 
 target_include_directories(sentinel.elf PRIVATE

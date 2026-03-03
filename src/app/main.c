@@ -13,6 +13,7 @@
 
 #include "hal_uart.h"
 #include "hal_gpio.h"
+#include "task_sensor.h"
 
 /* ---- Task priorities (higher number = higher priority) ---- */
 #define PRIORITY_LED_BLINK      1
@@ -72,6 +73,11 @@ int main(void)
 
     xTaskCreate(task_heartbeat, "HEARTBEAT", STACK_SIZE_DEFAULT,
                 NULL, PRIORITY_HEARTBEAT, NULL);
+
+    /* Sensor subsystem: IMU sampling (50 Hz) + telemetry (2 Hz) */
+    sensor_task_init();
+    sensor_tlm_task_init();
+    hal_uart_send_string("[BOOT] Sensor tasks created.\n");
 
     hal_uart_send_string("[BOOT] Starting scheduler.\n\n");
 
