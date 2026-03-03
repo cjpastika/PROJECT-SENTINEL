@@ -21,6 +21,7 @@
 #include "cmd_handler.h"
 #include "tlm_frame.h"
 #include "task_sensor.h"
+#include "task_watchdog.h"
 
 /* ---- Configuration ---- */
 #define CMD_POLL_PERIOD_MS      50      /* check for input at 20 Hz */
@@ -181,6 +182,7 @@ typedef enum {
 static void task_cmd_handler(void *params)
 {
     (void)params;
+    wdg_slot_t wdg = watchdog_register("CMD_HANDLER", 200);
 
     parse_state_t state = PARSE_IDLE;
     uint8_t cmd_id   = 0;
@@ -262,6 +264,7 @@ static void task_cmd_handler(void *params)
             }
         }
 
+        watchdog_checkin(wdg);
         vTaskDelay(pdMS_TO_TICKS(CMD_POLL_PERIOD_MS));
     }
 }

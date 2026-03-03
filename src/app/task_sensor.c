@@ -21,6 +21,7 @@
 #include "task_sensor.h"
 #include "tlm_frame.h"
 #include "cmd_handler.h"
+#include "task_watchdog.h"
 
 /* ---- Configuration ---- */
 #define SENSOR_SAMPLE_PERIOD_MS     20      /* 50 Hz */
@@ -46,6 +47,7 @@ static void task_sensor_sample(void *params)
 {
     (void)params;
     TickType_t last_wake = xTaskGetTickCount();
+    wdg_slot_t wdg = watchdog_register("IMU_SAMPLE", 100);
 
     for (;;) {
         imu_reading_t reading;
@@ -54,6 +56,7 @@ static void task_sensor_sample(void *params)
         /* Non-blocking send — drop if queue is full */
         xQueueSend(g_imu_queue, &reading, 0);
 
+        watchdog_checkin(wdg);
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(SENSOR_SAMPLE_PERIOD_MS));
     }
 }
@@ -67,6 +70,7 @@ static void task_sensor_sample(void *params)
 static void task_sensor_tlm(void *params)
 {
     (void)params;
+    wdg_slot_t wdg = watchdog_register("IMU_TLM", 1200);
 
     for (;;) {
         imu_reading_t reading;
@@ -92,6 +96,7 @@ static void task_sensor_tlm(void *params)
             tlm_send_debug(TLM_MSG_IMU, &pkt, sizeof(pkt));
         }
 
+        watchdog_checkin(wdg);
         vTaskDelay(pdMS_TO_TICKS(g_tlm_rate_ms));
     }
 }

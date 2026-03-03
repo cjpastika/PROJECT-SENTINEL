@@ -16,6 +16,7 @@
 #include "task_sensor.h"
 #include "tlm_frame.h"
 #include "cmd_handler.h"
+#include "task_watchdog.h"
 
 /* ---- Task priorities (higher number = higher priority) ---- */
 #define PRIORITY_LED_BLINK      1
@@ -63,6 +64,10 @@ int main(void)
     cmd_handler_init();
     hal_uart_send_string("[BOOT] Command handler ready (press '?' for help).\n");
 
+    /* Task watchdog: software timer monitors task deadlines */
+    watchdog_init();
+    hal_uart_send_string("[BOOT] Task watchdog started.\n");
+
     hal_uart_send_string("[BOOT] Starting scheduler.\n\n");
 
     /* Start FreeRTOS — should never return */
@@ -82,9 +87,11 @@ int main(void)
 static void task_led_blink(void *params)
 {
     (void)params;
+    wdg_slot_t wdg = watchdog_register("LED_BLINK", 600);
 
     for (;;) {
         hal_led_toggle();
+        watchdog_checkin(wdg);
         vTaskDelay(pdMS_TO_TICKS(250));
     }
 }
@@ -99,6 +106,7 @@ static void task_heartbeat(void *params)
 {
     (void)params;
     uint32_t beat = 0;
+    wdg_slot_t wdg = watchdog_register("HEARTBEAT", 2000);
 
     for (;;) {
         tlm_heartbeat_t hb;
@@ -111,6 +119,7 @@ static void task_heartbeat(void *params)
 
         tlm_send_debug(TLM_MSG_HEARTBEAT, &hb, sizeof(hb));
 
+        watchdog_checkin(wdg);
         beat++;
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
