@@ -19,6 +19,7 @@
 #include "hal_uart.h"
 #include "hal_sensor.h"
 #include "task_sensor.h"
+#include "tlm_frame.h"
 
 /* ---- Configuration ---- */
 #define SENSOR_SAMPLE_PERIOD_MS     20      /* 50 Hz */
@@ -32,54 +33,6 @@
 
 /* ---- Global queue handle ---- */
 QueueHandle_t g_imu_queue = NULL;
-
-/* ---- Helper: integer to string (shared with main.c pattern) ---- */
-static void int_to_str(int32_t val, char *buf, size_t buflen)
-{
-    char tmp[12];
-    int i = 0;
-    int neg = 0;
-
-    if (val < 0) {
-        neg = 1;
-        val = -val;
-    }
-
-    if (val == 0) {
-        tmp[i++] = '0';
-    } else {
-        while (val > 0 && i < (int)sizeof(tmp)) {
-            tmp[i++] = '0' + (char)(val % 10);
-            val /= 10;
-        }
-    }
-
-    int j = 0;
-    if (neg && j < (int)buflen - 1) {
-        buf[j++] = '-';
-    }
-    while (i > 0 && j < (int)buflen - 1) {
-        buf[j++] = tmp[--i];
-    }
-    buf[j] = '\0';
-}
-
-static void send_labeled_int(const char *label, int32_t val)
-{
-    char buf[12];
-    hal_uart_send_string(label);
-    int_to_str(val, buf, sizeof(buf));
-    hal_uart_send_string(buf);
-}
-
-/* ---- Flight phase name for telemetry ---- */
-static const char *get_phase_name(uint32_t tick_ms)
-{
-    if (tick_ms < 5000)       return "PAD";
-    else if (tick_ms < 15000) return "BOOST";
-    else if (tick_ms < 30000) return "COAST";
-    else                      return "DESCENT";
-}
 
 /* ================================================================
  * Sensor Sampling Task — runs at 50 Hz
@@ -105,10 +58,10 @@ static void task_sensor_sample(void *params)
 }
 
 /* ================================================================
- * Sensor Telemetry Task — prints latest IMU data at 2 Hz
+ * Sensor Telemetry Task — sends latest IMU data as binary packet
  *
- * Drains the queue to get the most recent sample, then prints
- * it as human-readable telemetry over UART.
+ * Drains the queue to get the most recent sample, then sends it
+ * as a framed TLM_MSG_IMU binary packet over UART.
  * ================================================================ */
 static void task_sensor_tlm(void *params)
 {
@@ -126,19 +79,16 @@ static void task_sensor_tlm(void *params)
         }
 
         if (got_any) {
-            hal_uart_send_string("[IMU] t=");
-            send_labeled_int("", (int32_t)latest.timestamp_ms);
+            tlm_imu_t pkt;
+            pkt.timestamp_ms = latest.timestamp_ms;
+            pkt.accel_x      = latest.accel.x;
+            pkt.accel_y      = latest.accel.y;
+            pkt.accel_z      = latest.accel.z;
+            pkt.gyro_x       = latest.gyro.x;
+            pkt.gyro_y       = latest.gyro.y;
+            pkt.gyro_z       = latest.gyro.z;
 
-            hal_uart_send_string(" phase=");
-            hal_uart_send_string(get_phase_name(latest.timestamp_ms));
-
-            send_labeled_int("  ax=", latest.accel.x);
-            send_labeled_int(" ay=",  latest.accel.y);
-            send_labeled_int(" az=",  latest.accel.z);
-            send_labeled_int("  gx=", latest.gyro.x);
-            send_labeled_int(" gy=",  latest.gyro.y);
-            send_labeled_int(" gz=",  latest.gyro.z);
-            hal_uart_send_string("\n");
+            tlm_send_debug(TLM_MSG_IMU, &pkt, sizeof(pkt));
         }
 
         vTaskDelay(pdMS_TO_TICKS(SENSOR_TLM_PERIOD_MS));

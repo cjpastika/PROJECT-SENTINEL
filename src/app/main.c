@@ -14,6 +14,7 @@
 #include "hal_uart.h"
 #include "hal_gpio.h"
 #include "task_sensor.h"
+#include "tlm_frame.h"
 
 /* ---- Task priorities (higher number = higher priority) ---- */
 #define PRIORITY_LED_BLINK      1
@@ -26,28 +27,6 @@
 static void task_led_blink(void *params);
 static void task_heartbeat(void *params);
 
-/* ---- Helper: simple integer-to-string ---- */
-static void uint_to_str(uint32_t val, char *buf, size_t buflen)
-{
-    char tmp[12];
-    int i = 0;
-
-    if (val == 0) {
-        tmp[i++] = '0';
-    } else {
-        while (val > 0 && i < (int)sizeof(tmp)) {
-            tmp[i++] = '0' + (val % 10);
-            val /= 10;
-        }
-    }
-
-    /* Reverse into output buffer */
-    int j = 0;
-    while (i > 0 && j < (int)buflen - 1) {
-        buf[j++] = tmp[--i];
-    }
-    buf[j] = '\0';
-}
 
 /* ================================================================
  * main() — system entry point
@@ -106,10 +85,10 @@ static void task_led_blink(void *params)
 }
 
 /* ================================================================
- * Heartbeat Task — prints a periodic status message over UART
+ * Heartbeat Task — sends periodic heartbeat telemetry packet
  *
- * Demonstrates UART telemetry output that we can observe from the
- * host terminal. Prints a tick count so we can verify timing.
+ * Sends a binary-framed TLM_MSG_HEARTBEAT packet containing the
+ * beat counter, tick count, and active task count.
  * ================================================================ */
 static void task_heartbeat(void *params)
 {
@@ -117,21 +96,15 @@ static void task_heartbeat(void *params)
     uint32_t beat = 0;
 
     for (;;) {
-        char num_buf[12];
+        tlm_heartbeat_t hb;
+        hb.beat_count = beat;
+        hb.tick_ms    = (uint32_t)xTaskGetTickCount();
+        hb.task_count = (uint8_t)uxTaskGetNumberOfTasks();
+        hb.pad[0] = 0;
+        hb.pad[1] = 0;
+        hb.pad[2] = 0;
 
-        hal_uart_send_string("[TLM] Heartbeat #");
-        uint_to_str(beat, num_buf, sizeof(num_buf));
-        hal_uart_send_string(num_buf);
-
-        hal_uart_send_string("  tick=");
-        uint_to_str((uint32_t)xTaskGetTickCount(), num_buf, sizeof(num_buf));
-        hal_uart_send_string(num_buf);
-
-        hal_uart_send_string("  tasks=");
-        uint_to_str((uint32_t)uxTaskGetNumberOfTasks(), num_buf, sizeof(num_buf));
-        hal_uart_send_string(num_buf);
-
-        hal_uart_send_string("\n");
+        tlm_send_debug(TLM_MSG_HEARTBEAT, &hb, sizeof(hb));
 
         beat++;
         vTaskDelay(pdMS_TO_TICKS(1000));
