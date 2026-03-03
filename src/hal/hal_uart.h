@@ -16,4 +16,10 @@ void hal_uart_send_char(char c);
 void hal_uart_send_string(const char *str);
 void hal_uart_send_bytes(const uint8_t *data, size_t len);
 
+/* Returns 1 if a byte is available in the RX FIFO, 0 otherwise */
+int  hal_uart_rx_ready(void);
+
+/* Blocking read of one byte from UART RX */
+char hal_uart_recv_char(void);
+
 #endif /* HAL_UART_H */

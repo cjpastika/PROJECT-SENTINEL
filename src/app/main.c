@@ -15,6 +15,7 @@
 #include "hal_gpio.h"
 #include "task_sensor.h"
 #include "tlm_frame.h"
+#include "cmd_handler.h"
 
 /* ---- Task priorities (higher number = higher priority) ---- */
 #define PRIORITY_LED_BLINK      1
@@ -57,6 +58,10 @@ int main(void)
     sensor_task_init();
     sensor_tlm_task_init();
     hal_uart_send_string("[BOOT] Sensor tasks created.\n");
+
+    /* Command handler: UART RX parser + dispatcher */
+    cmd_handler_init();
+    hal_uart_send_string("[BOOT] Command handler ready (press '?' for help).\n");
 
     hal_uart_send_string("[BOOT] Starting scheduler.\n\n");
 

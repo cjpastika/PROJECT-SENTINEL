@@ -50,6 +50,7 @@ add_executable(sentinel.elf
     ${SRC_DIR}/app/main.c
     ${SRC_DIR}/app/task_sensor.c
     ${SRC_DIR}/app/tlm_frame.c
+    ${SRC_DIR}/app/cmd_handler.c
 )
 
 target_include_directories(sentinel.elf PRIVATE

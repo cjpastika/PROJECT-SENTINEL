@@ -16,6 +16,7 @@
 #define UART_FR     (*(volatile uint32_t *)(UART0_BASE + 0x018)) /* Flag */
 
 /* Flag register bits */
+#define UART_FR_RXFE  (1U << 4)  /* Receive FIFO empty */
 #define UART_FR_TXFF  (1U << 5)  /* Transmit FIFO full */
 
 void hal_uart_init(void)
@@ -45,4 +46,15 @@ void hal_uart_send_bytes(const uint8_t *data, size_t len)
     for (size_t i = 0; i < len; i++) {
         hal_uart_send_char((char)data[i]);
     }
+}
+
+int hal_uart_rx_ready(void)
+{
+    return (UART_FR & UART_FR_RXFE) ? 0 : 1;
+}
+
+char hal_uart_recv_char(void)
+{
+    while (UART_FR & UART_FR_RXFE) {}
+    return (char)(UART_DR & 0xFF);
 }

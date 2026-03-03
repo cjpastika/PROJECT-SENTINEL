@@ -20,6 +20,7 @@
 #include "hal_sensor.h"
 #include "task_sensor.h"
 #include "tlm_frame.h"
+#include "cmd_handler.h"
 
 /* ---- Configuration ---- */
 #define SENSOR_SAMPLE_PERIOD_MS     20      /* 50 Hz */
@@ -91,7 +92,7 @@ static void task_sensor_tlm(void *params)
             tlm_send_debug(TLM_MSG_IMU, &pkt, sizeof(pkt));
         }
 
-        vTaskDelay(pdMS_TO_TICKS(SENSOR_TLM_PERIOD_MS));
+        vTaskDelay(pdMS_TO_TICKS(g_tlm_rate_ms));
     }
 }
 
