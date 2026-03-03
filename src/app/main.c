@@ -17,6 +17,7 @@
 #include "tlm_frame.h"
 #include "cmd_handler.h"
 #include "task_watchdog.h"
+#include "flight_sm.h"
 
 /* ---- Task priorities (higher number = higher priority) ---- */
 #define PRIORITY_LED_BLINK      1
@@ -63,6 +64,10 @@ int main(void)
     /* Command handler: UART RX parser + dispatcher */
     cmd_handler_init();
     hal_uart_send_string("[BOOT] Command handler ready (press '?' for help).\n");
+
+    /* Flight state machine: mission mode manager */
+    flight_sm_init();
+    hal_uart_send_string("[BOOT] Flight state machine ready.\n");
 
     /* Task watchdog: software timer monitors task deadlines */
     watchdog_init();

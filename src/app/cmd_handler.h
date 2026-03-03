@@ -28,6 +28,7 @@
 #define CMD_LED_TOGGLE      0x11
 #define CMD_STATUS_REQ      0x12
 #define CMD_SET_TLM_RATE    0x13
+#define CMD_ARM             0x14
 
 /* ---- Response message IDs ---- */
 #define TLM_MSG_CMD_ACK     0x03

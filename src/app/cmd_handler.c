@@ -22,6 +22,7 @@
 #include "tlm_frame.h"
 #include "task_sensor.h"
 #include "task_watchdog.h"
+#include "flight_sm.h"
 
 /* ---- Configuration ---- */
 #define CMD_POLL_PERIOD_MS      50      /* check for input at 20 Hz */
@@ -96,6 +97,13 @@ static void handle_set_tlm_rate(const uint8_t *payload, uint8_t len)
     send_ack(CMD_SET_TLM_RATE, 0);
 }
 
+static void handle_arm(void)
+{
+    flight_sm_arm();
+    hal_uart_send_string("[CMD] ARM command sent\n");
+    send_ack(CMD_ARM, 0);
+}
+
 /* ---- Dispatch a validated command ---- */
 static void dispatch_command(uint8_t cmd_id, const uint8_t *payload, uint8_t len)
 {
@@ -111,6 +119,9 @@ static void dispatch_command(uint8_t cmd_id, const uint8_t *payload, uint8_t len
         break;
     case CMD_SET_TLM_RATE:
         handle_set_tlm_rate(payload, len);
+        break;
+    case CMD_ARM:
+        handle_arm();
         break;
     default:
         hal_uart_send_string("[CMD] Unknown command\n");
@@ -147,8 +158,13 @@ static void handle_shortcut(char c)
         hal_uart_send_string("[CMD] TLM rate: slower\n");
         send_ack(CMD_SET_TLM_RATE, 0);
         break;
+    case 'a':
+    case 'A':
+        dispatch_command(CMD_ARM, NULL, 0);
+        break;
     case '?':
         hal_uart_send_string("\n--- Command Shortcuts ---\n");
+        hal_uart_send_string("  a  Arm flight SM\n");
         hal_uart_send_string("  l  LED toggle\n");
         hal_uart_send_string("  s  Status request\n");
         hal_uart_send_string("  +  Faster telemetry\n");
