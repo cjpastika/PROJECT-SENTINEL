@@ -53,6 +53,7 @@ add_executable(sentinel.elf
     ${SRC_DIR}/app/cmd_handler.c
     ${SRC_DIR}/app/task_watchdog.c
     ${SRC_DIR}/app/flight_sm.c
+    ${SRC_DIR}/app/ekf_altitude.c
 )
 
 target_include_directories(sentinel.elf PRIVATE

@@ -5,7 +5,7 @@
  * and starts the FreeRTOS scheduler.
  *
  * Phase 1: Minimal bringup with LED blink + UART hello world
- * Phase 2: Full flight computer task set + EKF (to be added)
+ * Phase 2: Full flight computer task set + EKF
  */
 
 #include "FreeRTOS.h"
@@ -18,6 +18,7 @@
 #include "cmd_handler.h"
 #include "task_watchdog.h"
 #include "flight_sm.h"
+#include "ekf_altitude.h"
 
 /* ---- Task priorities (higher number = higher priority) ---- */
 #define PRIORITY_LED_BLINK      1
@@ -68,6 +69,10 @@ int main(void)
     /* Flight state machine: mission mode manager */
     flight_sm_init();
     hal_uart_send_string("[BOOT] Flight state machine ready.\n");
+
+    /* EKF: 1D altitude estimator (50 Hz, fuses accel Z) */
+    ekf_task_init();
+    hal_uart_send_string("[BOOT] EKF altitude estimator started.\n");
 
     /* Task watchdog: software timer monitors task deadlines */
     watchdog_init();
