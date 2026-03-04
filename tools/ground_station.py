@@ -308,7 +308,8 @@ class CcsdsParser:
             data_length = (self.buf[4] << 8) | self.buf[5]
             total_len = 6 + data_length + 1  # primary hdr + data field
 
-            if total_len > 256:  # sanity check
+            # Minimum: sec_hdr(4) + CRC(2) = 6 data bytes, so total >= 12
+            if total_len < 12 or total_len > 256:
                 self.buf.pop(0)
                 continue
 
