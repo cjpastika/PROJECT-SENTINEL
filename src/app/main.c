@@ -20,6 +20,7 @@
 #include "flight_sm.h"
 #include "ekf_altitude.h"
 #include "datalog.h"
+#include "fault_mgr.h"
 
 /* ---- Task priorities (higher number = higher priority) ---- */
 #define PRIORITY_LED_BLINK      1
@@ -58,9 +59,16 @@ int main(void)
     xTaskCreate(task_heartbeat, "HEARTBEAT", STACK_SIZE_DEFAULT,
                 NULL, PRIORITY_HEARTBEAT, NULL);
 
+    /* Fault manager: centralized anomaly recording */
+    fault_mgr_init();
+    hal_uart_send_string("[BOOT] Fault manager initialized.\n");
+
     /* Data logger: simulated flash circular buffer */
     datalog_init();
     hal_uart_send_string("[BOOT] Flash data logger initialized (4 KB).\n");
+
+    fault_record(FAULT_SEV_INFO, FAULT_SRC_SYSTEM,
+                 FAULT_DETAIL_BOOT, 0);
 
     /* Sensor subsystem: IMU sampling (50 Hz) + telemetry (2 Hz) */
     sensor_task_init();
@@ -145,6 +153,8 @@ static void task_heartbeat(void *params)
  * ================================================================ */
 void vApplicationMallocFailedHook(void)
 {
+    fault_record(FAULT_SEV_CRITICAL, FAULT_SRC_RTOS,
+                 FAULT_DETAIL_MALLOC_FAIL, 0);
     hal_uart_send_string("[FATAL] Malloc failed!\n");
     taskDISABLE_INTERRUPTS();
     for (;;) {}
@@ -153,6 +163,8 @@ void vApplicationMallocFailedHook(void)
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
     (void)xTask;
+    fault_record(FAULT_SEV_CRITICAL, FAULT_SRC_RTOS,
+                 FAULT_DETAIL_STACK_OVERFLOW, 0);
     hal_uart_send_string("[FATAL] Stack overflow in task: ");
     hal_uart_send_string(pcTaskName);
     hal_uart_send_string("\n");

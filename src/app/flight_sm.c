@@ -25,6 +25,7 @@
 #include "task_sensor.h"
 #include "tlm_frame.h"
 #include "task_watchdog.h"
+#include "fault_mgr.h"
 
 /* ---- Configuration ---- */
 #define SM_EVAL_PERIOD_MS       100     /* 10 Hz evaluation rate */
@@ -80,6 +81,8 @@ static void transition_to(flight_state_t new_state, int32_t accel_z)
 {
     prev_state = current_state;
     emit_transition(current_state, new_state, accel_z);
+    fault_record(FAULT_SEV_INFO, FAULT_SRC_FSM,
+                 FAULT_DETAIL_FSM_TRANSITION, (uint8_t)new_state);
     current_state = new_state;
     confirm_count = 0;
 }

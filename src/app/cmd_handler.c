@@ -24,6 +24,7 @@
 #include "task_watchdog.h"
 #include "flight_sm.h"
 #include "datalog.h"
+#include "fault_mgr.h"
 
 /* ---- Configuration ---- */
 #define CMD_POLL_PERIOD_MS      50      /* check for input at 20 Hz */
@@ -119,6 +120,14 @@ static void handle_log_erase(void)
     send_ack(CMD_LOG_ERASE, 0);
 }
 
+static void handle_fault_dump(void)
+{
+    hal_uart_send_string("[CMD] Dumping fault log\n");
+    send_ack(CMD_FAULT_DUMP, 0);
+    fault_dump();
+    fault_send_summary();
+}
+
 /* ---- Dispatch a validated command ---- */
 static void dispatch_command(uint8_t cmd_id, const uint8_t *payload, uint8_t len)
 {
@@ -143,6 +152,9 @@ static void dispatch_command(uint8_t cmd_id, const uint8_t *payload, uint8_t len
         break;
     case CMD_LOG_ERASE:
         handle_log_erase();
+        break;
+    case CMD_FAULT_DUMP:
+        handle_fault_dump();
         break;
     default:
         hal_uart_send_string("[CMD] Unknown command\n");
@@ -191,11 +203,16 @@ static void handle_shortcut(char c)
     case 'E':
         dispatch_command(CMD_LOG_ERASE, NULL, 0);
         break;
+    case 'f':
+    case 'F':
+        dispatch_command(CMD_FAULT_DUMP, NULL, 0);
+        break;
     case '?':
         hal_uart_send_string("\n--- Command Shortcuts ---\n");
         hal_uart_send_string("  a  Arm flight SM\n");
         hal_uart_send_string("  d  Dump flash log\n");
         hal_uart_send_string("  e  Erase flash log\n");
+        hal_uart_send_string("  f  Dump fault log\n");
         hal_uart_send_string("  l  LED toggle\n");
         hal_uart_send_string("  s  Status request\n");
         hal_uart_send_string("  +  Faster telemetry\n");

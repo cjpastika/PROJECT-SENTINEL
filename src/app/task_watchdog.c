@@ -17,6 +17,7 @@
 #include "hal_uart.h"
 #include "task_watchdog.h"
 #include "tlm_frame.h"
+#include "fault_mgr.h"
 
 /* ---- Configuration ---- */
 #define WDG_CHECK_PERIOD_MS     500     /* how often the timer fires */
@@ -47,23 +48,6 @@ typedef struct __attribute__((packed)) {
     uint32_t tick_ms;           /* current tick */
 } tlm_wdg_fault_t;
 
-/* ---- Utility: simple uint32-to-decimal for fault logging ---- */
-static void send_uint32(uint32_t val)
-{
-    char buf[11];
-    int i = 10;
-    buf[i] = '\0';
-    if (val == 0) {
-        buf[--i] = '0';
-    } else {
-        while (val > 0) {
-            buf[--i] = '0' + (char)(val % 10);
-            val /= 10;
-        }
-    }
-    hal_uart_send_string(&buf[i]);
-}
-
 /* ================================================================
  * Timer callback — runs in the timer daemon task context
  *
@@ -88,15 +72,11 @@ static void wdg_timer_callback(TimerHandle_t xTimer)
                 slots[i].faulted = 1;
                 g_wdg_fault_count++;
 
-                hal_uart_send_string("[WDG] FAULT: task '");
-                hal_uart_send_string(slots[i].name);
-                hal_uart_send_string("' missed deadline (");
-                send_uint32(elapsed_ms);
-                hal_uart_send_string(" ms > ");
-                send_uint32(slots[i].deadline_ms);
-                hal_uart_send_string(" ms)\n");
+                /* Record in fault manager */
+                fault_record(FAULT_SEV_ERROR, FAULT_SRC_WATCHDOG,
+                             FAULT_DETAIL_WDG_MISS, i);
 
-                /* Send binary fault telemetry */
+                /* Send binary watchdog telemetry */
                 tlm_wdg_fault_t pkt;
                 pkt.slot_id   = i;
                 pkt.pad       = 0;
