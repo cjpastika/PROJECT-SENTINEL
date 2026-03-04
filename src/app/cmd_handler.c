@@ -25,6 +25,7 @@
 #include "flight_sm.h"
 #include "datalog.h"
 #include "fault_mgr.h"
+#include "tmr.h"
 
 /* ---- Configuration ---- */
 #define CMD_POLL_PERIOD_MS      50      /* check for input at 20 Hz */
@@ -207,6 +208,24 @@ static void handle_shortcut(char c)
     case 'F':
         dispatch_command(CMD_FAULT_DUMP, NULL, 0);
         break;
+    case 't':
+    case 'T': {
+        /* On-demand TMR status telemetry */
+        hal_uart_send_string("[CMD] TMR status\n");
+        tlm_tmr_t pkt;
+        pkt.timestamp_ms = (uint32_t)xTaskGetTickCount();
+        pkt.voted_alt_mm = (int32_t)(tmr_get_voted_altitude() * 1000.0f);
+        pkt.voted_vel_mms = (int32_t)(tmr_get_voted_velocity() * 1000.0f);
+        pkt.chan_alt_mm[0] = 0;
+        pkt.chan_alt_mm[1] = 0;
+        pkt.chan_alt_mm[2] = 0;
+        pkt.chan_health = 0x07;
+        pkt.disagree_count = 0;
+        pkt.pad[0] = 0;
+        pkt.pad[1] = 0;
+        tlm_send_debug(TLM_MSG_TMR, &pkt, sizeof(pkt));
+        break;
+    }
     case '?':
         hal_uart_send_string("\n--- Command Shortcuts ---\n");
         hal_uart_send_string("  a  Arm flight SM\n");
@@ -215,6 +234,7 @@ static void handle_shortcut(char c)
         hal_uart_send_string("  f  Dump fault log\n");
         hal_uart_send_string("  l  LED toggle\n");
         hal_uart_send_string("  s  Status request\n");
+        hal_uart_send_string("  t  TMR voter status\n");
         hal_uart_send_string("  +  Faster telemetry\n");
         hal_uart_send_string("  -  Slower telemetry\n");
         hal_uart_send_string("  ?  This help\n");

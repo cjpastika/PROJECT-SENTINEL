@@ -21,6 +21,7 @@
 #include "ekf_altitude.h"
 #include "datalog.h"
 #include "fault_mgr.h"
+#include "tmr.h"
 
 /* ---- Task priorities (higher number = higher priority) ---- */
 #define PRIORITY_LED_BLINK      1
@@ -86,6 +87,10 @@ int main(void)
     /* EKF: 1D altitude estimator (50 Hz, fuses accel Z) */
     ekf_task_init();
     hal_uart_send_string("[BOOT] EKF altitude estimator started.\n");
+
+    /* TMR: Triple Modular Redundancy voter over 3 EKF channels */
+    tmr_ekf_init();
+    hal_uart_send_string("[BOOT] TMR voting (3-channel EKF) started.\n");
 
     /* Task watchdog: software timer monitors task deadlines */
     watchdog_init();

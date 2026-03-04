@@ -56,6 +56,7 @@ add_executable(sentinel.elf
     ${SRC_DIR}/app/ekf_altitude.c
     ${SRC_DIR}/app/datalog.c
     ${SRC_DIR}/app/fault_mgr.c
+    ${SRC_DIR}/app/tmr.c
 )
 
 target_include_directories(sentinel.elf PRIVATE
