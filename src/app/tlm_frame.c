@@ -9,6 +9,7 @@
 
 #include "tlm_frame.h"
 #include "hal_uart.h"
+#include "datalog.h"
 
 /* ---- Compute XOR checksum over msg_id + length + payload ---- */
 static uint8_t compute_checksum(uint8_t msg_id, const uint8_t *payload, uint8_t len)
@@ -23,6 +24,11 @@ static uint8_t compute_checksum(uint8_t msg_id, const uint8_t *payload, uint8_t 
 void tlm_send(uint8_t msg_id, const void *payload, uint8_t len)
 {
     const uint8_t *p = (const uint8_t *)payload;
+
+    /* Auto-log to flash (skip log-replay packets to avoid recursion) */
+    if (datalog_get_autolog() && msg_id != TLM_MSG_LOG_ENTRY) {
+        datalog_write(msg_id, payload, len);
+    }
 
     /* Sync word */
     hal_uart_send_char((char)TLM_SYNC_0);

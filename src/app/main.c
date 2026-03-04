@@ -19,6 +19,7 @@
 #include "task_watchdog.h"
 #include "flight_sm.h"
 #include "ekf_altitude.h"
+#include "datalog.h"
 
 /* ---- Task priorities (higher number = higher priority) ---- */
 #define PRIORITY_LED_BLINK      1
@@ -56,6 +57,10 @@ int main(void)
 
     xTaskCreate(task_heartbeat, "HEARTBEAT", STACK_SIZE_DEFAULT,
                 NULL, PRIORITY_HEARTBEAT, NULL);
+
+    /* Data logger: simulated flash circular buffer */
+    datalog_init();
+    hal_uart_send_string("[BOOT] Flash data logger initialized (4 KB).\n");
 
     /* Sensor subsystem: IMU sampling (50 Hz) + telemetry (2 Hz) */
     sensor_task_init();
