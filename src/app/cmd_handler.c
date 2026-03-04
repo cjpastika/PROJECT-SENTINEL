@@ -26,6 +26,7 @@
 #include "datalog.h"
 #include "fault_mgr.h"
 #include "tmr.h"
+#include "ccsds.h"
 
 /* ---- Configuration ---- */
 #define CMD_POLL_PERIOD_MS      50      /* check for input at 20 Hz */
@@ -226,9 +227,20 @@ static void handle_shortcut(char c)
         tlm_send_debug(TLM_MSG_TMR, &pkt, sizeof(pkt));
         break;
     }
+    case 'c':
+    case 'C': {
+        /* CCSDS stats + toggle */
+        tlm_ccsds_stats_t stats;
+        ccsds_get_stats(&stats);
+        hal_uart_send_string("[CMD] CCSDS: pkts=");
+        /* Simple decimal print using existing send_ack */
+        tlm_send_debug(TLM_MSG_CCSDS_STATS, &stats, sizeof(stats));
+        break;
+    }
     case '?':
         hal_uart_send_string("\n--- Command Shortcuts ---\n");
         hal_uart_send_string("  a  Arm flight SM\n");
+        hal_uart_send_string("  c  CCSDS packet stats\n");
         hal_uart_send_string("  d  Dump flash log\n");
         hal_uart_send_string("  e  Erase flash log\n");
         hal_uart_send_string("  f  Dump fault log\n");

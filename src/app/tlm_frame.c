@@ -10,6 +10,7 @@
 #include "tlm_frame.h"
 #include "hal_uart.h"
 #include "datalog.h"
+#include "ccsds.h"
 
 /* ---- Compute XOR checksum over msg_id + length + payload ---- */
 static uint8_t compute_checksum(uint8_t msg_id, const uint8_t *payload, uint8_t len)
@@ -44,6 +45,11 @@ void tlm_send(uint8_t msg_id, const void *payload, uint8_t len)
     /* Checksum */
     uint8_t cksum = compute_checksum(msg_id, p, len);
     hal_uart_send_char((char)cksum);
+
+    /* Also send as CCSDS space packet (msg_id maps directly to APID) */
+    if (ccsds_get_enabled()) {
+        ccsds_send_tlm((uint16_t)msg_id, payload, len);
+    }
 }
 
 /* ---- Hex dump helpers ---- */

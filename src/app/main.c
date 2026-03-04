@@ -22,6 +22,7 @@
 #include "datalog.h"
 #include "fault_mgr.h"
 #include "tmr.h"
+#include "ccsds.h"
 
 /* ---- Task priorities (higher number = higher priority) ---- */
 #define PRIORITY_LED_BLINK      1
@@ -91,6 +92,10 @@ int main(void)
     /* TMR: Triple Modular Redundancy voter over 3 EKF channels */
     tmr_ekf_init();
     hal_uart_send_string("[BOOT] TMR voting (3-channel EKF) started.\n");
+
+    /* CCSDS: Space packet protocol framing layer */
+    ccsds_init();
+    hal_uart_send_string("[BOOT] CCSDS-lite space packet framing enabled.\n");
 
     /* Task watchdog: software timer monitors task deadlines */
     watchdog_init();
