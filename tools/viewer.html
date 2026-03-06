@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SENTINEL — Mission Control</title>
+<style>
+/* ========================================================================
+   PROJECT-SENTINEL Mission Control HUD
+   Aesthetic: dark aerospace / defense — Palantir/SpaceX/Anduril vibes
+   ======================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --bg: #0a0a0f;
+    --bg-panel: rgba(10, 12, 20, 0.92);
+    --bg-card: rgba(18, 22, 35, 0.85);
+    --border: rgba(0, 200, 255, 0.12);
+    --border-active: rgba(0, 200, 255, 0.35);
+    --cyan: #00c8ff;
+    --cyan-dim: rgba(0, 200, 255, 0.5);
+    --cyan-glow: rgba(0, 200, 255, 0.15);
+    --green: #00ff88;
+    --green-dim: rgba(0, 255, 136, 0.5);
+    --red: #ff3355;
+    --orange: #ff8800;
+    --yellow: #ffcc00;
+    --white: #e8edf5;
+    --gray: #5a6278;
+    --text-dim: rgba(200, 210, 230, 0.5);
+    --mono: 'JetBrains Mono', 'Consolas', monospace;
+    --sans: 'Inter', -apple-system, sans-serif;
+}
+
+html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--white);
+    font-family: var(--mono);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Layout ---- */
+#app {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    grid-template-rows: 56px 1fr 200px;
+    height: 100vh;
+    gap: 1px;
+    background: var(--border);
+}
+
+/* ---- Top bar ---- */
+#topbar {
+    grid-column: 1 / -1;
+    background: var(--bg-panel);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 24px;
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+}
+
+#topbar .logo {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    text-shadow: 0 0 20px var(--cyan-glow);
+}
+
+#topbar .logo span {
+    color: var(--gray);
+    font-weight: 400;
+}
+
+#topbar .separator {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+}
+
+#mission-clock {
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    color: var(--white);
+    font-variant-numeric: tabular-nums;
+}
+
+#mission-clock.negative { color: var(--orange); }
+#mission-clock.positive { color: var(--green); }
+
+.topbar-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.topbar-stat .label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gray);
+}
+
+.topbar-stat .value {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--white);
+    font-variant-numeric: tabular-nums;
+}
+
+#flight-state-badge {
+    margin-left: auto;
+    padding: 6px 20px;
+    border-radius: 2px;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    background: rgba(90, 98, 120, 0.3);
+    border: 1px solid var(--gray);
+    color: var(--gray);
+    transition: all 0.3s ease;
+}
+
+#flight-state-badge.IDLE    { background: rgba(90, 98, 120, 0.3); border-color: var(--gray); color: var(--gray); }
+#flight-state-badge.ARMED   { background: rgba(255, 136, 0, 0.15); border-color: var(--orange); color: var(--orange); box-shadow: 0 0 20px rgba(255, 136, 0, 0.1); }
+#flight-state-badge.BOOST   { background: rgba(255, 51, 85, 0.15); border-color: var(--red); color: var(--red); box-shadow: 0 0 30px rgba(255, 51, 85, 0.15); animation: pulse-red 0.8s ease infinite; }
+#flight-state-badge.COAST   { background: rgba(0, 200, 255, 0.12); border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 20px var(--cyan-glow); }
+#flight-state-badge.DESCENT { background: rgba(160, 120, 255, 0.15); border-color: #a078ff; color: #a078ff; box-shadow: 0 0 20px rgba(160, 120, 255, 0.1); }
+#flight-state-badge.LANDED  { background: rgba(0, 255, 136, 0.12); border-color: var(--green); color: var(--green); box-shadow: 0 0 20px rgba(0, 255, 136, 0.1); }
+
+@keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 20px rgba(255, 51, 85, 0.15); }
+    50%      { box-shadow: 0 0 40px rgba(255, 51, 85, 0.3); }
+}
+
+#connection-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--gray);
+    transition: background 0.3s;
+}
+#connection-dot.connected { background: var(--green); box-shadow: 0 0 8px var(--green-dim); }
+
+/* ---- 3D Viewport ---- */
+#viewport {
+    position: relative;
+    background: var(--bg);
+    overflow: hidden;
+}
+
+#viewport canvas { display: block; }
+
+/* HUD overlay on viewport */
+.hud-overlay {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
+}
+
+#hud-altitude {
+    top: 20px; left: 20px;
+    display: flex; flex-direction: column; gap: 4px;
+}
+
+#hud-altitude .big-number {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1;
+    text-shadow: 0 0 30px rgba(0, 200, 255, 0.3);
+}
+
+#hud-altitude .unit {
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--cyan-dim);
+    letter-spacing: 2px;
+}
+
+#hud-altitude .sub-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gray);
+    margin-top: 2px;
+}
+
+#hud-velocity {
+    top: 130px; left: 20px;
+    display: flex; flex-direction: column; gap: 4px;
+}
+
+#hud-velocity .big-number {
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--white);
+    line-height: 1;
+}
+
+#hud-velocity .unit {
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--cyan-dim);
+}
+
+#hud-velocity .sub-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gray);
+    margin-top: 2px;
+}
+
+#hud-accel {
+    top: 210px; left: 20px;
+}
+
+#hud-accel .big-number {
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--white);
+}
+
+#hud-accel .unit {
+    font-size: 12px;
+    color: var(--cyan-dim);
+}
+
+#hud-accel .sub-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gray);
+    margin-top: 2px;
+}
+
+/* Corner brackets decoration */
+#viewport::before, #viewport::after {
+    content: '';
+    position: absolute;
+    width: 40px; height: 40px;
+    border: 1px solid var(--border-active);
+    z-index: 5;
+    pointer-events: none;
+}
+#viewport::before { top: 12px; right: 12px; border-left: none; border-bottom: none; }
+#viewport::after  { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+
+/* ---- Telemetry sidebar ---- */
+#sidebar {
+    background: var(--bg-panel);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    border-left: 1px solid var(--border);
+}
+
+.panel-section {
+    padding: 14px 16px;
+    background: var(--bg-card);
+}
+
+.panel-section .section-title {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gray);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+/* Telemetry rows */
+.tlm-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 3px 0;
+    font-size: 12px;
+}
+
+.tlm-row .key {
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.tlm-row .val {
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.2s;
+}
+
+/* TMR health indicators */
+.tmr-channels {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.tmr-chan {
+    flex: 1;
+    text-align: center;
+    padding: 6px 4px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.tmr-chan .chan-label {
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--gray);
+    margin-bottom: 4px;
+}
+
+.tmr-chan .chan-value {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.tmr-chan.healthy { border-color: rgba(0, 255, 136, 0.3); }
+.tmr-chan.healthy .chan-label { color: var(--green-dim); }
+.tmr-chan.fault { border-color: rgba(255, 51, 85, 0.4); background: rgba(255, 51, 85, 0.06); }
+.tmr-chan.fault .chan-label { color: var(--red); }
+
+/* Fault log */
+#fault-log {
+    max-height: 120px;
+    overflow-y: auto;
+    font-size: 10px;
+}
+
+.fault-entry {
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.fault-entry .fault-time { color: var(--gray); font-size: 9px; min-width: 50px; }
+.fault-entry .fault-sev { font-weight: 600; font-size: 9px; letter-spacing: 1px; }
+.fault-entry .fault-sev.INFO { color: var(--cyan); }
+.fault-entry .fault-sev.WARNING { color: var(--orange); }
+.fault-entry .fault-sev.ERROR { color: var(--red); }
+.fault-entry .fault-sev.CRITICAL { color: var(--red); animation: blink 1s step-end infinite; }
+.fault-entry .fault-msg { color: var(--text-dim); }
+
+@keyframes blink {
+    50% { opacity: 0.3; }
+}
+
+/* ---- Bottom graphs ---- */
+#graphs {
+    grid-column: 1 / -1;
+    background: var(--bg-panel);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    border-top: 1px solid var(--border);
+}
+
+.graph-panel {
+    position: relative;
+    background: var(--bg-card);
+    padding: 8px 12px 4px 12px;
+}
+
+.graph-panel .graph-title {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gray);
+    margin-bottom: 4px;
+}
+
+.graph-panel canvas {
+    width: 100%;
+    height: calc(100% - 20px);
+    display: block;
+}
+
+/* ---- Scanline overlay (subtle) ---- */
+#scanlines {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+    );
+    mix-blend-mode: multiply;
+}
+
+/* ---- Scrollbar style ---- */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 2px; }
+
+/* ---- Waiting state ---- */
+#waiting-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    background: rgba(10, 10, 15, 0.85);
+    transition: opacity 0.5s;
+}
+
+#waiting-overlay.hidden { opacity: 0; pointer-events: none; }
+
+#waiting-overlay .waiting-text {
+    font-family: var(--sans);
+    font-size: 14px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--gray);
+    animation: fade-pulse 2s ease infinite;
+}
+
+@keyframes fade-pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+    <!-- Top bar -->
+    <div id="topbar">
+        <div id="connection-dot"></div>
+        <div class="logo">SENTINEL <span>Mission Control</span></div>
+        <div class="separator"></div>
+        <div id="mission-clock">T-00:00:00</div>
+        <div class="separator"></div>
+        <div class="topbar-stat">
+            <div class="label">Packets</div>
+            <div class="value" id="pkt-count">0</div>
+        </div>
+        <div class="topbar-stat">
+            <div class="label">Hz</div>
+            <div class="value" id="pkt-rate">0</div>
+        </div>
+        <div id="flight-state-badge" class="IDLE">IDLE</div>
+    </div>
+
+    <!-- 3D Viewport -->
+    <div id="viewport">
+        <div id="hud-altitude" class="hud-overlay">
+            <div class="sub-label">Altitude</div>
+            <div><span class="big-number" id="hud-alt-val">0.0</span><span class="unit"> m</span></div>
+        </div>
+        <div id="hud-velocity" class="hud-overlay">
+            <div class="sub-label">Velocity</div>
+            <div><span class="big-number" id="hud-vel-val">0.0</span><span class="unit"> m/s</span></div>
+        </div>
+        <div id="hud-accel" class="hud-overlay">
+            <div class="sub-label">Accel Z</div>
+            <div><span class="big-number" id="hud-acc-val">0.0</span><span class="unit"> g</span></div>
+        </div>
+        <div id="waiting-overlay">
+            <div class="waiting-text">Awaiting Telemetry</div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <!-- EKF section -->
+        <div class="panel-section">
+            <div class="section-title">Navigation (EKF)</div>
+            <div class="tlm-row"><span class="key">Altitude</span><span class="val" id="tlm-alt">—</span></div>
+            <div class="tlm-row"><span class="key">Velocity</span><span class="val" id="tlm-vel">—</span></div>
+            <div class="tlm-row"><span class="key">Accel Input</span><span class="val" id="tlm-accel-in">—</span></div>
+            <div class="tlm-row"><span class="key">Max Altitude</span><span class="val" id="tlm-max-alt" style="color:var(--cyan)">—</span></div>
+            <div class="tlm-row"><span class="key">Max Velocity</span><span class="val" id="tlm-max-vel" style="color:var(--cyan)">—</span></div>
+        </div>
+
+        <!-- IMU section -->
+        <div class="panel-section">
+            <div class="section-title">IMU</div>
+            <div class="tlm-row"><span class="key">Accel X</span><span class="val" id="tlm-ax">—</span></div>
+            <div class="tlm-row"><span class="key">Accel Y</span><span class="val" id="tlm-ay">—</span></div>
+            <div class="tlm-row"><span class="key">Accel Z</span><span class="val" id="tlm-az">—</span></div>
+            <div class="tlm-row"><span class="key">Gyro X</span><span class="val" id="tlm-gx">—</span></div>
+            <div class="tlm-row"><span class="key">Gyro Y</span><span class="val" id="tlm-gy">—</span></div>
+            <div class="tlm-row"><span class="key">Gyro Z</span><span class="val" id="tlm-gz">—</span></div>
+        </div>
+
+        <!-- TMR section -->
+        <div class="panel-section">
+            <div class="section-title">TMR Voter</div>
+            <div class="tlm-row"><span class="key">Voted Alt</span><span class="val" id="tlm-tmr-alt">—</span></div>
+            <div class="tlm-row"><span class="key">Voted Vel</span><span class="val" id="tlm-tmr-vel">—</span></div>
+            <div class="tlm-row"><span class="key">Disagree</span><span class="val" id="tlm-tmr-dis">0</span></div>
+            <div class="tmr-channels">
+                <div class="tmr-chan" id="tmr-ch0"><div class="chan-label">CH 0</div><div class="chan-value" id="tmr-ch0-val">—</div></div>
+                <div class="tmr-chan" id="tmr-ch1"><div class="chan-label">CH 1</div><div class="chan-value" id="tmr-ch1-val">—</div></div>
+                <div class="tmr-chan" id="tmr-ch2"><div class="chan-label">CH 2</div><div class="chan-value" id="tmr-ch2-val">—</div></div>
+            </div>
+        </div>
+
+        <!-- System section -->
+        <div class="panel-section">
+            <div class="section-title">System</div>
+            <div class="tlm-row"><span class="key">Heartbeat</span><span class="val" id="tlm-hb">—</span></div>
+            <div class="tlm-row"><span class="key">Uptime</span><span class="val" id="tlm-uptime">—</span></div>
+            <div class="tlm-row"><span class="key">Tasks</span><span class="val" id="tlm-tasks">—</span></div>
+        </div>
+
+        <!-- Fault log -->
+        <div class="panel-section" style="flex:1; min-height:0;">
+            <div class="section-title">Fault Log</div>
+            <div id="fault-log"></div>
+        </div>
+    </div>
+
+    <!-- Bottom graphs -->
+    <div id="graphs">
+        <div class="graph-panel">
+            <div class="graph-title">Altitude (m)</div>
+            <canvas id="graph-alt"></canvas>
+        </div>
+        <div class="graph-panel">
+            <div class="graph-title">Velocity (m/s)</div>
+            <canvas id="graph-vel"></canvas>
+        </div>
+        <div class="graph-panel">
+            <div class="graph-title">Acceleration (g)</div>
+            <canvas id="graph-acc"></canvas>
+        </div>
+    </div>
+</div>
+
+<div id="scanlines"></div>
+
+<!-- Three.js from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+// =========================================================================
+// SENTINEL Mission Control — 3D Launch Viewer
+// =========================================================================
+
+// ---- State ----
+const state = {
+    connected: false,
+    flightState: 'IDLE',
+    altitude: 0,        // meters
+    velocity: 0,        // m/s
+    accelZ: 0,          // g
+    accelInput: 0,      // g
+    maxAlt: 0,
+    maxVel: 0,
+    gyro: { x: 0, y: 0, z: 0 },  // deg/s
+    tmr: { voted_alt: 0, voted_vel: 0, ch: [0,0,0], health: 7, disagree: 0 },
+    heartbeat: 0,
+    uptime: 0,
+    tasks: 0,
+    faults: [],
+    pktCount: 0,
+    pktRate: 0,
+    missionTime: 0,
+    launchDetected: false,
+    launchTick: 0,
+
+    // Graph data (ring buffers)
+    altHistory: [],
+    velHistory: [],
+    accHistory: [],
+    timeHistory: [],
+    historyMax: 400,
+};
+
+// ---- DOM refs ----
+const $ = id => document.getElementById(id);
+
+// ---- SSE Connection ----
+function connectSSE() {
+    const es = new EventSource('/events');
+
+    es.onopen = () => {
+        state.connected = true;
+        $('connection-dot').classList.add('connected');
+    };
+
+    es.onerror = () => {
+        state.connected = false;
+        $('connection-dot').classList.remove('connected');
+    };
+
+    es.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'EOF') return;
+
+        state.pktCount++;
+        state.connected = true;
+        $('connection-dot').classList.add('connected');
+
+        // Hide waiting overlay on first packet
+        $('waiting-overlay').classList.add('hidden');
+
+        handleTelemetry(msg);
+    };
+}
+
+function handleTelemetry(msg) {
+    const d = msg.data;
+    const t = d.timestamp_ms || d.tick_ms || 0;
+
+    switch (msg.type) {
+        case 'EKF':
+            state.altitude = d.altitude_mm / 1000;
+            state.velocity = d.velocity_mms / 1000;
+            state.accelInput = d.accel_input_mg / 1000;
+            state.maxAlt = Math.max(state.maxAlt, state.altitude);
+            state.maxVel = Math.max(state.maxVel, Math.abs(state.velocity));
+
+            pushHistory(t / 1000, state.altitude, state.velocity, state.accelInput);
+            break;
+
+        case 'IMU':
+            state.accelZ = d.accel_z_mg / 1000;
+            state.gyro.x = d.gyro_x_mdps / 1000;
+            state.gyro.y = d.gyro_y_mdps / 1000;
+            state.gyro.z = d.gyro_z_mdps / 1000;
+            updateIMU(d);
+            break;
+
+        case 'FLIGHT_STATE':
+            state.flightState = d.state;
+            if (d.state === 'BOOST' && !state.launchDetected) {
+                state.launchDetected = true;
+                state.launchTick = d.tick_ms;
+            }
+            updateFlightState(d.state);
+            break;
+
+        case 'TMR':
+            state.tmr.voted_alt = d.voted_alt_mm / 1000;
+            state.tmr.voted_vel = d.voted_vel_mms / 1000;
+            state.tmr.ch[0] = d.chan0_alt_mm / 1000;
+            state.tmr.ch[1] = d.chan1_alt_mm / 1000;
+            state.tmr.ch[2] = d.chan2_alt_mm / 1000;
+            state.tmr.health = d.chan_health;
+            state.tmr.disagree = d.disagree_count;
+            updateTMR();
+            break;
+
+        case 'HEARTBEAT':
+            state.heartbeat = d.beat_count;
+            state.uptime = d.tick_ms;
+            state.tasks = d.task_count;
+            updateSystem();
+            break;
+
+        case 'FAULT_EVENT':
+            state.faults.unshift({ time: d.tick_ms, severity: d.severity, source: d.source, detail: d.detail });
+            if (state.faults.length > 50) state.faults.pop();
+            updateFaultLog();
+            break;
+    }
+}
+
+// ---- Graph history ----
+function pushHistory(t, alt, vel, acc) {
+    state.timeHistory.push(t);
+    state.altHistory.push(alt);
+    state.velHistory.push(vel);
+    state.accHistory.push(acc);
+
+    if (state.timeHistory.length > state.historyMax) {
+        state.timeHistory.shift();
+        state.altHistory.shift();
+        state.velHistory.shift();
+        state.accHistory.shift();
+    }
+}
+
+// ---- UI updaters ----
+function updateFlightState(s) {
+    const badge = $('flight-state-badge');
+    badge.textContent = s;
+    badge.className = s;
+}
+
+function updateIMU(d) {
+    $('tlm-ax').textContent = (d.accel_x_mg / 1000).toFixed(2) + ' g';
+    $('tlm-ay').textContent = (d.accel_y_mg / 1000).toFixed(2) + ' g';
+    $('tlm-az').textContent = (d.accel_z_mg / 1000).toFixed(2) + ' g';
+    $('tlm-gx').textContent = (d.gyro_x_mdps / 1000).toFixed(1) + ' °/s';
+    $('tlm-gy').textContent = (d.gyro_y_mdps / 1000).toFixed(1) + ' °/s';
+    $('tlm-gz').textContent = (d.gyro_z_mdps / 1000).toFixed(1) + ' °/s';
+}
+
+function updateTMR() {
+    $('tlm-tmr-alt').textContent = state.tmr.voted_alt.toFixed(1) + ' m';
+    $('tlm-tmr-vel').textContent = state.tmr.voted_vel.toFixed(1) + ' m/s';
+    $('tlm-tmr-dis').textContent = state.tmr.disagree;
+    $('tlm-tmr-dis').style.color = state.tmr.disagree > 0 ? 'var(--orange)' : 'var(--white)';
+
+    for (let i = 0; i < 3; i++) {
+        const el = $('tmr-ch' + i);
+        const healthy = (state.tmr.health >> i) & 1;
+        el.className = 'tmr-chan ' + (healthy ? 'healthy' : 'fault');
+        $('tmr-ch' + i + '-val').textContent = state.tmr.ch[i].toFixed(1) + ' m';
+    }
+}
+
+function updateSystem() {
+    $('tlm-hb').textContent = state.heartbeat;
+    const secs = Math.floor(state.uptime / 1000);
+    const mm = Math.floor(secs / 60).toString().padStart(2, '0');
+    const ss = (secs % 60).toString().padStart(2, '0');
+    $('tlm-uptime').textContent = mm + ':' + ss;
+    $('tlm-tasks').textContent = state.tasks;
+}
+
+function updateFaultLog() {
+    const el = $('fault-log');
+    el.innerHTML = state.faults.slice(0, 20).map(f => {
+        const t = (f.time / 1000).toFixed(1) + 's';
+        return `<div class="fault-entry">
+            <span class="fault-time">${t}</span>
+            <span class="fault-sev ${f.severity}">${f.severity}</span>
+            <span class="fault-msg">${f.source} ${f.detail}</span>
+        </div>`;
+    }).join('');
+}
+
+// ---- Packet rate tracking ----
+let lastPktCount = 0;
+setInterval(() => {
+    state.pktRate = state.pktCount - lastPktCount;
+    lastPktCount = state.pktCount;
+    $('pkt-count').textContent = state.pktCount;
+    $('pkt-rate').textContent = state.pktRate;
+}, 1000);
+
+// =========================================================================
+// THREE.JS 3D SCENE
+// =========================================================================
+
+let scene, camera, renderer, rocket, exhaust, trail;
+let rocketGroup;
+const trailPoints = [];
+const TRAIL_MAX = 600;
+
+function initScene() {
+    const container = $('viewport');
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x060610);
+    renderer.shadowMap.enabled = false;
+    container.insertBefore(renderer.domElement, container.firstChild);
+
+    // Scene
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x060610, 0.00015);
+
+    // Camera
+    camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 50000);
+    camera.position.set(25, 8, 25);
+    camera.lookAt(0, 0, 0);
+
+    // Lights
+    const ambient = new THREE.AmbientLight(0x334466, 0.6);
+    scene.add(ambient);
+
+    const dirLight = new THREE.DirectionalLight(0xaaccff, 0.8);
+    dirLight.position.set(50, 100, 30);
+    scene.add(dirLight);
+
+    const pointLight = new THREE.PointLight(0x00c8ff, 0.4, 200);
+    pointLight.position.set(0, 20, 0);
+    scene.add(pointLight);
+
+    // Ground
+    createGround();
+
+    // Rocket
+    createRocket();
+
+    // Stars
+    createStars();
+
+    // Altitude markers
+    createAltitudeMarkers();
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+    });
+}
+
+function createGround() {
+    // Grid
+    const gridSize = 200;
+    const gridDiv = 40;
+    const grid = new THREE.GridHelper(gridSize, gridDiv, 0x0a3050, 0x061828);
+    grid.material.opacity = 0.6;
+    grid.material.transparent = true;
+    scene.add(grid);
+
+    // Ground plane (subtle)
+    const groundGeo = new THREE.PlaneGeometry(2000, 2000);
+    const groundMat = new THREE.MeshBasicMaterial({
+        color: 0x080c14,
+        transparent: true,
+        opacity: 0.95,
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.1;
+    scene.add(ground);
+
+    // Pad marker
+    const padGeo = new THREE.RingGeometry(1.5, 2, 32);
+    const padMat = new THREE.MeshBasicMaterial({
+        color: 0x00c8ff,
+        transparent: true,
+        opacity: 0.4,
+        side: THREE.DoubleSide,
+    });
+    const pad = new THREE.Mesh(padGeo, padMat);
+    pad.rotation.x = -Math.PI / 2;
+    pad.position.y = 0.01;
+    scene.add(pad);
+
+    // Inner pad dot
+    const dotGeo = new THREE.CircleGeometry(0.5, 16);
+    const dotMat = new THREE.MeshBasicMaterial({
+        color: 0x00ff88,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide,
+    });
+    const dot = new THREE.Mesh(dotGeo, dotMat);
+    dot.rotation.x = -Math.PI / 2;
+    dot.position.y = 0.02;
+    scene.add(dot);
+}
+
+function createRocket() {
+    rocketGroup = new THREE.Group();
+
+    // Body (cylinder)
+    const bodyGeo = new THREE.CylinderGeometry(0.4, 0.5, 5, 16);
+    const bodyMat = new THREE.MeshPhongMaterial({
+        color: 0xd0d8e8,
+        emissive: 0x112233,
+        shininess: 80,
+    });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 2.5;
+    rocketGroup.add(body);
+
+    // Nose cone
+    const noseGeo = new THREE.ConeGeometry(0.4, 1.5, 16);
+    const noseMat = new THREE.MeshPhongMaterial({
+        color: 0xff3355,
+        emissive: 0x330011,
+        shininess: 100,
+    });
+    const nose = new THREE.Mesh(noseGeo, noseMat);
+    nose.position.y = 5.75;
+    rocketGroup.add(nose);
+
+    // Fins (4x)
+    const finShape = new THREE.Shape();
+    finShape.moveTo(0, 0);
+    finShape.lineTo(0.8, 0);
+    finShape.lineTo(0, 1.2);
+    finShape.closePath();
+    const finGeo = new THREE.ExtrudeGeometry(finShape, { depth: 0.05, bevelEnabled: false });
+    const finMat = new THREE.MeshPhongMaterial({ color: 0x556688, emissive: 0x0a1525 });
+
+    for (let i = 0; i < 4; i++) {
+        const fin = new THREE.Mesh(finGeo, finMat);
+        fin.rotation.y = (Math.PI / 2) * i;
+        fin.position.y = 0;
+        fin.position.x = Math.cos((Math.PI / 2) * i) * 0.45;
+        fin.position.z = Math.sin((Math.PI / 2) * i) * 0.45;
+        rocketGroup.add(fin);
+    }
+
+    // Engine bell
+    const bellGeo = new THREE.CylinderGeometry(0.35, 0.55, 0.4, 16, 1, true);
+    const bellMat = new THREE.MeshPhongMaterial({
+        color: 0x444444,
+        emissive: 0x111111,
+        side: THREE.DoubleSide,
+    });
+    const bell = new THREE.Mesh(bellGeo, bellMat);
+    bell.position.y = -0.2;
+    rocketGroup.add(bell);
+
+    // Exhaust glow (point light on rocket)
+    exhaust = new THREE.PointLight(0xff6622, 0, 30);
+    exhaust.position.y = -0.5;
+    rocketGroup.add(exhaust);
+
+    // Exhaust plume (cone, visible during boost)
+    const plumeGeo = new THREE.ConeGeometry(0.6, 4, 8);
+    const plumeMat = new THREE.MeshBasicMaterial({
+        color: 0xff8833,
+        transparent: true,
+        opacity: 0.7,
+    });
+    const plume = new THREE.Mesh(plumeGeo, plumeMat);
+    plume.position.y = -2.5;
+    plume.rotation.x = Math.PI; // point down
+    plume.visible = false;
+    plume.name = 'plume';
+    rocketGroup.add(plume);
+
+    // Inner plume (brighter core)
+    const coreGeo = new THREE.ConeGeometry(0.25, 3, 8);
+    const coreMat = new THREE.MeshBasicMaterial({
+        color: 0xffddaa,
+        transparent: true,
+        opacity: 0.9,
+    });
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    core.position.y = -2;
+    core.rotation.x = Math.PI;
+    core.visible = false;
+    core.name = 'plume-core';
+    rocketGroup.add(core);
+
+    rocketGroup.position.y = 0;
+    scene.add(rocketGroup);
+
+    // Trail line
+    const trailGeo = new THREE.BufferGeometry();
+    const trailMat = new THREE.LineBasicMaterial({
+        color: 0x00c8ff,
+        transparent: true,
+        opacity: 0.4,
+    });
+    trail = new THREE.Line(trailGeo, trailMat);
+    scene.add(trail);
+}
+
+function createStars() {
+    const starGeo = new THREE.BufferGeometry();
+    const positions = [];
+    for (let i = 0; i < 3000; i++) {
+        const r = 5000 + Math.random() * 15000;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI;
+        positions.push(
+            r * Math.sin(phi) * Math.cos(theta),
+            r * Math.cos(phi),
+            r * Math.sin(phi) * Math.sin(theta)
+        );
+    }
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    const starMat = new THREE.PointsMaterial({
+        color: 0xaabbcc,
+        size: 3,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity: 0.6,
+    });
+    scene.add(new THREE.Points(starGeo, starMat));
+}
+
+function createAltitudeMarkers() {
+    // Altitude rings at various heights
+    const heights = [100, 500, 1000, 2000, 5000];
+    heights.forEach(h => {
+        const ringGeo = new THREE.RingGeometry(8, 8.3, 64);
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: 0x00c8ff,
+            transparent: true,
+            opacity: 0.08,
+            side: THREE.DoubleSide,
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = h;
+        scene.add(ring);
+    });
+}
+
+// ---- Animation loop ----
+let animTime = 0;
+
+function animate() {
+    requestAnimationFrame(animate);
+    animTime += 0.016;
+
+    // Update rocket position
+    const targetY = Math.max(0, state.altitude);
+    rocketGroup.position.y += (targetY - rocketGroup.position.y) * 0.15;
+
+    // Subtle rotation from gyro data
+    const gxRad = (state.gyro.x * 0.0002);
+    const gzRad = (state.gyro.z * 0.0002);
+    rocketGroup.rotation.x += (gxRad - rocketGroup.rotation.x) * 0.05;
+    rocketGroup.rotation.z += (gzRad - rocketGroup.rotation.z) * 0.05;
+
+    // Exhaust effects
+    const isBoosting = state.flightState === 'BOOST';
+    const plume = rocketGroup.getObjectByName('plume');
+    const core = rocketGroup.getObjectByName('plume-core');
+
+    if (plume) {
+        plume.visible = isBoosting;
+        if (isBoosting) {
+            const flicker = 0.6 + Math.random() * 0.4;
+            plume.scale.set(flicker, 0.8 + Math.random() * 0.4, flicker);
+            plume.material.opacity = 0.5 + Math.random() * 0.3;
+        }
+    }
+    if (core) {
+        core.visible = isBoosting;
+        if (isBoosting) {
+            core.scale.set(0.8 + Math.random() * 0.3, 0.9 + Math.random() * 0.2, 0.8 + Math.random() * 0.3);
+        }
+    }
+    exhaust.intensity = isBoosting ? 2 + Math.random() : 0;
+
+    // Trail
+    if (state.altitude > 0.5) {
+        trailPoints.push(new THREE.Vector3(
+            rocketGroup.position.x,
+            rocketGroup.position.y,
+            rocketGroup.position.z
+        ));
+        if (trailPoints.length > TRAIL_MAX) trailPoints.shift();
+
+        const positions = [];
+        trailPoints.forEach(p => positions.push(p.x, p.y, p.z));
+        trail.geometry.dispose();
+        trail.geometry = new THREE.BufferGeometry();
+        trail.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    }
+
+    // Camera tracking
+    const camDist = 20 + state.altitude * 0.08;
+    const camHeight = Math.max(8, state.altitude * 0.6);
+    const camAngle = animTime * 0.05;
+
+    const targetCamX = Math.cos(camAngle) * camDist;
+    const targetCamZ = Math.sin(camAngle) * camDist;
+    const targetCamY = camHeight;
+
+    camera.position.x += (targetCamX - camera.position.x) * 0.02;
+    camera.position.y += (targetCamY - camera.position.y) * 0.02;
+    camera.position.z += (targetCamZ - camera.position.z) * 0.02;
+    camera.lookAt(0, rocketGroup.position.y * 0.8, 0);
+
+    renderer.render(scene, camera);
+
+    // Update HUD
+    updateHUD();
+}
+
+function updateHUD() {
+    // Big numbers on viewport
+    $('hud-alt-val').textContent = state.altitude.toFixed(1);
+    $('hud-vel-val').textContent = state.velocity.toFixed(1);
+    $('hud-acc-val').textContent = state.accelInput.toFixed(2);
+
+    // Sidebar EKF
+    $('tlm-alt').textContent = state.altitude.toFixed(2) + ' m';
+    $('tlm-vel').textContent = state.velocity.toFixed(2) + ' m/s';
+    $('tlm-accel-in').textContent = state.accelInput.toFixed(2) + ' g';
+    $('tlm-max-alt').textContent = state.maxAlt.toFixed(1) + ' m';
+    $('tlm-max-vel').textContent = state.maxVel.toFixed(1) + ' m/s';
+
+    // Mission clock
+    let missionMs;
+    if (state.launchDetected && state.uptime > 0) {
+        missionMs = state.uptime - state.launchTick;
+    } else if (state.uptime > 0) {
+        missionMs = -state.uptime;  // count down before launch
+    } else {
+        missionMs = 0;
+    }
+
+    const prefix = missionMs >= 0 ? 'T+' : 'T-';
+    const absSec = Math.abs(Math.floor(missionMs / 1000));
+    const mm = Math.floor(absSec / 60).toString().padStart(2, '0');
+    const ss = (absSec % 60).toString().padStart(2, '0');
+    const ms = Math.abs(missionMs % 1000).toString().padStart(3, '0').slice(0, 2);
+
+    const clockEl = $('mission-clock');
+    clockEl.textContent = `${prefix}${mm}:${ss}.${ms}`;
+    clockEl.className = missionMs >= 0 ? 'positive' : 'negative';
+}
+
+// =========================================================================
+// GRAPH RENDERING
+// =========================================================================
+
+function drawGraph(canvasId, data, color, unit) {
+    const canvas = $(canvasId);
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = rect.width - 24;
+    const h = rect.height - 24;
+
+    if (canvas.width !== w * 2 || canvas.height !== h * 2) {
+        canvas.width = w * 2;
+        canvas.height = h * 2;
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+        ctx.scale(2, 2);
+    }
+
+    ctx.clearRect(0, 0, w, h);
+
+    if (data.length < 2) return;
+
+    // Find range
+    let min = Infinity, max = -Infinity;
+    for (const v of data) {
+        if (v < min) min = v;
+        if (v > max) max = v;
+    }
+    if (max === min) { max += 1; min -= 1; }
+    const range = max - min;
+    const pad = range * 0.1;
+    min -= pad;
+    max += pad;
+
+    // Grid lines
+    ctx.strokeStyle = 'rgba(0, 200, 255, 0.06)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 4; i++) {
+        const y = h * (i / 4);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+    }
+
+    // Data line
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+
+    for (let i = 0; i < data.length; i++) {
+        const x = (i / (data.length - 1)) * w;
+        const y = h - ((data[i] - min) / (max - min)) * h;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Glow effect
+    ctx.strokeStyle = color.replace('1)', '0.15)').replace('rgb', 'rgba');
+    if (!ctx.strokeStyle.includes('rgba')) {
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.15;
+    }
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    for (let i = 0; i < data.length; i++) {
+        const x = (i / (data.length - 1)) * w;
+        const y = h - ((data[i] - min) / (max - min)) * h;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+
+    // Current value label
+    const lastVal = data[data.length - 1];
+    ctx.fillStyle = 'rgba(200, 210, 230, 0.5)';
+    ctx.font = '9px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(lastVal.toFixed(1) + ' ' + unit, w - 2, 10);
+
+    // Min/Max labels
+    ctx.fillStyle = 'rgba(200, 210, 230, 0.2)';
+    ctx.fillText(max.toFixed(0), w - 2, 18);
+    ctx.fillText(min.toFixed(0), w - 2, h - 2);
+}
+
+function updateGraphs() {
+    drawGraph('graph-alt', state.altHistory, '#00c8ff', 'm');
+    drawGraph('graph-vel', state.velHistory, '#00ff88', 'm/s');
+    drawGraph('graph-acc', state.accHistory, '#ff8833', 'g');
+}
+
+// Update graphs at 10 Hz (no need for 60fps on charts)
+setInterval(updateGraphs, 100);
+
+// =========================================================================
+// INIT
+// =========================================================================
+
+initScene();
+animate();
+connectSSE();
+
+</script>
+</body>
+</html>
