@@ -259,10 +259,12 @@ def telemetry_reader(stream):
 
     try:
         while True:
-            data = stream.read(1)
+            # Read in chunks for much better throughput
+            data = stream.read(256)
             if not data:
                 break
-            parser.feed(data[0])
+            for byte_val in data:
+                parser.feed(byte_val)
 
             for pkt in parser.get_packets():
                 if isinstance(pkt[0], str):
@@ -305,14 +307,23 @@ class ViewerHandler(http.server.BaseHTTPRequestHandler):
             self._serve_sse()
         elif self.path == "/cmd" or self.path.startswith("/cmd?"):
             self._handle_cmd()
+        elif self.path == "/favicon.ico":
+            self.send_response(204)
+            self.end_headers()
         else:
-            self.send_error(404)
+            try:
+                self.send_error(404)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
 
     def do_POST(self):
         if self.path == "/cmd":
             self._handle_cmd()
         else:
-            self.send_error(404)
+            try:
+                self.send_error(404)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
 
     def _serve_file(self, filename, content_type):
         fpath = TOOLS_DIR / filename

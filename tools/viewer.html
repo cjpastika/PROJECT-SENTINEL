@@ -161,7 +161,7 @@ html, body {
     overflow: hidden;
 }
 
-#viewport canvas { display: block; }
+#viewport canvas { display: block; background: #060610; }
 
 /* HUD overlay on viewport */
 .hud-overlay {
@@ -641,7 +641,7 @@ function handleTelemetry(msg) {
 
     switch (msg.type) {
         case 'EKF':
-            state.altitude = d.altitude_mm / 1000;
+            state.altitude = Math.max(0, d.altitude_mm / 1000);
             state.velocity = d.velocity_mms / 1000;
             state.accelInput = d.accel_input_mg / 1000;
             state.maxAlt = Math.max(state.maxAlt, state.altitude);
@@ -785,7 +785,7 @@ function initScene() {
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(w, h);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setClearColor(0x060610);
     renderer.shadowMap.enabled = false;
     container.insertBefore(renderer.domElement, container.firstChild);
@@ -971,8 +971,11 @@ function createRocket() {
     rocketGroup.position.y = 0;
     scene.add(rocketGroup);
 
-    // Trail line
+    // Trail line — pre-allocate buffer to avoid GC churn
     const trailGeo = new THREE.BufferGeometry();
+    const trailPositions = new Float32Array(TRAIL_MAX * 3);
+    trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+    trailGeo.setDrawRange(0, 0);
     const trailMat = new THREE.LineBasicMaterial({
         color: 0x00c8ff,
         transparent: true,
@@ -985,7 +988,7 @@ function createRocket() {
 function createStars() {
     const starGeo = new THREE.BufferGeometry();
     const positions = [];
-    for (let i = 0; i < 3000; i++) {
+    for (let i = 0; i < 1500; i++) {
         const r = 5000 + Math.random() * 15000;
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.random() * Math.PI;
@@ -1026,14 +1029,17 @@ function createAltitudeMarkers() {
 
 // ---- Animation loop ----
 let animTime = 0;
+let lastHudUpdate = 0;
+const HUD_INTERVAL = 66; // ~15fps for DOM updates
 
 function animate() {
     requestAnimationFrame(animate);
+    const now = performance.now();
     animTime += 0.016;
 
-    // Update rocket position
-    const targetY = Math.max(0, state.altitude);
-    rocketGroup.position.y += (targetY - rocketGroup.position.y) * 0.15;
+    // Update rocket position (smooth lerp)
+    const targetY = state.altitude;
+    rocketGroup.position.y += (targetY - rocketGroup.position.y) * 0.08;
 
     // Subtle rotation from gyro data
     const gxRad = (state.gyro.x * 0.0002);
@@ -1062,20 +1068,19 @@ function animate() {
     }
     exhaust.intensity = isBoosting ? 2 + Math.random() : 0;
 
-    // Trail
+    // Trail — reuse pre-allocated buffer
     if (state.altitude > 0.5) {
-        trailPoints.push(new THREE.Vector3(
-            rocketGroup.position.x,
-            rocketGroup.position.y,
-            rocketGroup.position.z
-        ));
-        if (trailPoints.length > TRAIL_MAX) trailPoints.shift();
+        if (trailPoints.length >= TRAIL_MAX) trailPoints.shift();
+        trailPoints.push({ x: rocketGroup.position.x, y: rocketGroup.position.y, z: rocketGroup.position.z });
 
-        const positions = [];
-        trailPoints.forEach(p => positions.push(p.x, p.y, p.z));
-        trail.geometry.dispose();
-        trail.geometry = new THREE.BufferGeometry();
-        trail.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        const posAttr = trail.geometry.getAttribute('position');
+        for (let i = 0; i < trailPoints.length; i++) {
+            posAttr.array[i * 3]     = trailPoints[i].x;
+            posAttr.array[i * 3 + 1] = trailPoints[i].y;
+            posAttr.array[i * 3 + 2] = trailPoints[i].z;
+        }
+        posAttr.needsUpdate = true;
+        trail.geometry.setDrawRange(0, trailPoints.length);
     }
 
     // Camera tracking
@@ -1094,8 +1099,11 @@ function animate() {
 
     renderer.render(scene, camera);
 
-    // Update HUD
-    updateHUD();
+    // Throttle DOM updates to ~15fps
+    if (now - lastHudUpdate > HUD_INTERVAL) {
+        lastHudUpdate = now;
+        updateHUD();
+    }
 }
 
 function updateHUD() {
@@ -1228,8 +1236,8 @@ function updateGraphs() {
     drawGraph('graph-acc', state.accHistory, '#ff8833', 'g');
 }
 
-// Update graphs at 10 Hz (no need for 60fps on charts)
-setInterval(updateGraphs, 100);
+// Update graphs at 5 Hz (charts don't need high framerate)
+setInterval(updateGraphs, 200);
 
 // =========================================================================
 // INIT
