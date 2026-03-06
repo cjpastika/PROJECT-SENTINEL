@@ -659,6 +659,13 @@ function handleTelemetry(msg) {
             state.lastEkfTime = performance.now();
 
             pushHistory(t / 1000, state.altitude, state.velocity, state.accelInput);
+
+            // Stop updating history once landed (prevents graphs drifting below 0)
+            if (state.flightState === 'LANDED') {
+                state.altitude = 0;
+                state.velocity = 0;
+                state.accelInput = 0;
+            }
             break;
 
         case 'IMU':
@@ -707,8 +714,8 @@ function handleTelemetry(msg) {
 // ---- Graph history ----
 function pushHistory(t, alt, vel, acc) {
     state.timeHistory.push(t);
-    state.altHistory.push(alt);
-    state.velHistory.push(vel);
+    state.altHistory.push(Math.max(0, alt));
+    state.velHistory.push(Math.max(0, vel));
     state.accHistory.push(acc);
 
     if (state.timeHistory.length > state.historyMax) {
@@ -1050,6 +1057,9 @@ function animate(timestamp) {
     state.displayAlt += (predictedAlt - state.displayAlt) * smoothFactor;
     state.displayVel += (predictedVel - state.displayVel) * smoothFactor;
     state.displayAcc += (state.accelInput - state.displayAcc) * smoothFactor;
+
+    // Clamp: rocket can't go underground
+    state.displayAlt = Math.max(0, state.displayAlt);
 
     // Draw the 2D scene every frame
     drawFlightScene();
