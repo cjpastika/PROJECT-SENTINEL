@@ -48,7 +48,7 @@ html, body {
 #app {
     display: grid;
     grid-template-columns: 1fr 380px;
-    grid-template-rows: 56px 1fr 200px;
+    grid-template-rows: 56px 1fr 240px;
     height: 100vh;
     gap: 1px;
     background: var(--border);
@@ -154,14 +154,19 @@ html, body {
 }
 #connection-dot.connected { background: var(--green); box-shadow: 0 0 8px var(--green-dim); }
 
-/* ---- 3D Viewport ---- */
+/* ---- 2D Viewport ---- */
 #viewport {
     position: relative;
-    background: var(--bg);
+    background: #060610;
     overflow: hidden;
 }
 
-#viewport canvas { display: block; background: #060610; }
+#viewport canvas#flight-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: #060610;
+}
 
 /* HUD overlay on viewport */
 .hud-overlay {
@@ -477,8 +482,9 @@ html, body {
         <div id="flight-state-badge" class="IDLE">IDLE</div>
     </div>
 
-    <!-- 3D Viewport -->
+    <!-- 2D Viewport -->
     <div id="viewport">
+        <canvas id="flight-canvas"></canvas>
         <div id="hud-altitude" class="hud-overlay">
             <div class="sub-label">Altitude</div>
             <div><span class="big-number" id="hud-alt-val">0.0</span><span class="unit"> m</span></div>
@@ -565,9 +571,6 @@ html, body {
 </div>
 
 <div id="scanlines"></div>
-
-<!-- Three.js from CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
 // =========================================================================
@@ -777,352 +780,281 @@ setInterval(() => {
 }, 1000);
 
 // =========================================================================
-// THREE.JS 3D SCENE
+// 2D FLIGHT CANVAS — Side-view rocket visualization
 // =========================================================================
 
-let scene, camera, renderer, rocket, exhaust, trail;
-let rocketGroup;
-const trailPoints = [];
-const TRAIL_MAX = 600;
+let flightCanvas, flightCtx;
+let canvasW = 0, canvasH = 0;
+
+// Pre-generate stars once
+const stars = [];
+for (let i = 0; i < 200; i++) {
+    stars.push({
+        x: Math.random(),
+        y: Math.random(),
+        r: 0.5 + Math.random() * 1.5,
+        a: 0.2 + Math.random() * 0.5,
+    });
+}
 
 function initScene() {
-    const container = $('viewport');
-    const w = container.clientWidth;
-    const h = container.clientHeight;
+    flightCanvas = $('flight-canvas');
+    flightCtx = flightCanvas.getContext('2d');
 
-    // Renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setSize(w, h);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    renderer.setClearColor(0x060610);
-    renderer.shadowMap.enabled = false;
-    container.insertBefore(renderer.domElement, container.firstChild);
-
-    // Scene
-    scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x060610, 0.00015);
-
-    // Camera
-    camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 50000);
-    camera.position.set(25, 8, 25);
-    camera.lookAt(0, 0, 0);
-
-    // Lights
-    const ambient = new THREE.AmbientLight(0x334466, 0.6);
-    scene.add(ambient);
-
-    const dirLight = new THREE.DirectionalLight(0xaaccff, 0.8);
-    dirLight.position.set(50, 100, 30);
-    scene.add(dirLight);
-
-    const pointLight = new THREE.PointLight(0x00c8ff, 0.4, 200);
-    pointLight.position.set(0, 20, 0);
-    scene.add(pointLight);
-
-    // Ground
-    createGround();
-
-    // Rocket
-    createRocket();
-
-    // Stars
-    createStars();
-
-    // Altitude markers
-    createAltitudeMarkers();
-
-    // Resize handler
-    window.addEventListener('resize', () => {
-        const w = container.clientWidth;
-        const h = container.clientHeight;
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-        renderer.setSize(w, h);
-    });
+    function resize() {
+        const container = $('viewport');
+        canvasW = container.clientWidth;
+        canvasH = container.clientHeight;
+        const dpr = Math.min(window.devicePixelRatio, 2);
+        flightCanvas.width = canvasW * dpr;
+        flightCanvas.height = canvasH * dpr;
+        flightCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
 }
 
-function createGround() {
-    // Grid
-    const gridSize = 200;
-    const gridDiv = 40;
-    const grid = new THREE.GridHelper(gridSize, gridDiv, 0x0a3050, 0x061828);
-    grid.material.opacity = 0.6;
-    grid.material.transparent = true;
-    scene.add(grid);
+// Draw a rocket shape at (cx, cy) with given height in px
+function drawRocket(ctx, cx, cy, rh, isBoosting, tiltRad) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(tiltRad);
 
-    // Ground plane (subtle)
-    const groundGeo = new THREE.PlaneGeometry(2000, 2000);
-    const groundMat = new THREE.MeshBasicMaterial({
-        color: 0x080c14,
-        transparent: true,
-        opacity: 0.95,
-    });
-    const ground = new THREE.Mesh(groundGeo, groundMat);
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.1;
-    scene.add(ground);
+    const bw = rh * 0.18;  // body half-width
+    const bodyH = rh * 0.6;
+    const noseH = rh * 0.25;
+    const finH = rh * 0.2;
+    const finW = rh * 0.22;
 
-    // Pad marker
-    const padGeo = new THREE.RingGeometry(1.5, 2, 32);
-    const padMat = new THREE.MeshBasicMaterial({
-        color: 0x00c8ff,
-        transparent: true,
-        opacity: 0.4,
-        side: THREE.DoubleSide,
-    });
-    const pad = new THREE.Mesh(padGeo, padMat);
-    pad.rotation.x = -Math.PI / 2;
-    pad.position.y = 0.01;
-    scene.add(pad);
+    // Body
+    ctx.fillStyle = '#c8d0e0';
+    ctx.beginPath();
+    ctx.rect(-bw, -bodyH / 2, bw * 2, bodyH);
+    ctx.fill();
 
-    // Inner pad dot
-    const dotGeo = new THREE.CircleGeometry(0.5, 16);
-    const dotMat = new THREE.MeshBasicMaterial({
-        color: 0x00ff88,
-        transparent: true,
-        opacity: 0.6,
-        side: THREE.DoubleSide,
-    });
-    const dot = new THREE.Mesh(dotGeo, dotMat);
-    dot.rotation.x = -Math.PI / 2;
-    dot.position.y = 0.02;
-    scene.add(dot);
-}
-
-function createRocket() {
-    rocketGroup = new THREE.Group();
-
-    // Body (cylinder)
-    const bodyGeo = new THREE.CylinderGeometry(0.4, 0.5, 5, 16);
-    const bodyMat = new THREE.MeshPhongMaterial({
-        color: 0xd0d8e8,
-        emissive: 0x112233,
-        shininess: 80,
-    });
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 2.5;
-    rocketGroup.add(body);
+    // Body stripe
+    ctx.fillStyle = '#556688';
+    ctx.fillRect(-bw, -bodyH * 0.1, bw * 2, bodyH * 0.08);
 
     // Nose cone
-    const noseGeo = new THREE.ConeGeometry(0.4, 1.5, 16);
-    const noseMat = new THREE.MeshPhongMaterial({
-        color: 0xff3355,
-        emissive: 0x330011,
-        shininess: 100,
-    });
-    const nose = new THREE.Mesh(noseGeo, noseMat);
-    nose.position.y = 5.75;
-    rocketGroup.add(nose);
+    ctx.fillStyle = '#ff3355';
+    ctx.beginPath();
+    ctx.moveTo(0, -bodyH / 2 - noseH);
+    ctx.lineTo(-bw, -bodyH / 2);
+    ctx.lineTo(bw, -bodyH / 2);
+    ctx.closePath();
+    ctx.fill();
 
-    // Fins (4x)
-    const finShape = new THREE.Shape();
-    finShape.moveTo(0, 0);
-    finShape.lineTo(0.8, 0);
-    finShape.lineTo(0, 1.2);
-    finShape.closePath();
-    const finGeo = new THREE.ExtrudeGeometry(finShape, { depth: 0.05, bevelEnabled: false });
-    const finMat = new THREE.MeshPhongMaterial({ color: 0x556688, emissive: 0x0a1525 });
+    // Fins
+    ctx.fillStyle = '#445570';
+    // Left fin
+    ctx.beginPath();
+    ctx.moveTo(-bw, bodyH / 2 - finH * 0.3);
+    ctx.lineTo(-bw - finW, bodyH / 2);
+    ctx.lineTo(-bw, bodyH / 2);
+    ctx.closePath();
+    ctx.fill();
+    // Right fin
+    ctx.beginPath();
+    ctx.moveTo(bw, bodyH / 2 - finH * 0.3);
+    ctx.lineTo(bw + finW, bodyH / 2);
+    ctx.lineTo(bw, bodyH / 2);
+    ctx.closePath();
+    ctx.fill();
 
-    for (let i = 0; i < 4; i++) {
-        const fin = new THREE.Mesh(finGeo, finMat);
-        fin.rotation.y = (Math.PI / 2) * i;
-        fin.position.y = 0;
-        fin.position.x = Math.cos((Math.PI / 2) * i) * 0.45;
-        fin.position.z = Math.sin((Math.PI / 2) * i) * 0.45;
-        rocketGroup.add(fin);
+    // Engine nozzle
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.moveTo(-bw * 0.6, bodyH / 2);
+    ctx.lineTo(-bw * 0.8, bodyH / 2 + rh * 0.06);
+    ctx.lineTo(bw * 0.8, bodyH / 2 + rh * 0.06);
+    ctx.lineTo(bw * 0.6, bodyH / 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Exhaust plume
+    if (isBoosting) {
+        const plumeTop = bodyH / 2 + rh * 0.05;
+        const plumeLen = rh * (0.4 + Math.random() * 0.25);
+        const plumeW = bw * (0.7 + Math.random() * 0.3);
+
+        // Outer plume
+        const grad = ctx.createLinearGradient(0, plumeTop, 0, plumeTop + plumeLen);
+        grad.addColorStop(0, 'rgba(255, 136, 50, 0.9)');
+        grad.addColorStop(0.4, 'rgba(255, 80, 20, 0.6)');
+        grad.addColorStop(1, 'rgba(255, 50, 10, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(-plumeW, plumeTop);
+        ctx.quadraticCurveTo(-plumeW * 0.3, plumeTop + plumeLen * 0.7, 0, plumeTop + plumeLen);
+        ctx.quadraticCurveTo(plumeW * 0.3, plumeTop + plumeLen * 0.7, plumeW, plumeTop);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner core
+        const coreGrad = ctx.createLinearGradient(0, plumeTop, 0, plumeTop + plumeLen * 0.6);
+        coreGrad.addColorStop(0, 'rgba(255, 230, 180, 0.95)');
+        coreGrad.addColorStop(1, 'rgba(255, 200, 100, 0)');
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.moveTo(-plumeW * 0.35, plumeTop);
+        ctx.quadraticCurveTo(0, plumeTop + plumeLen * 0.5, 0, plumeTop + plumeLen * 0.6);
+        ctx.quadraticCurveTo(0, plumeTop + plumeLen * 0.5, plumeW * 0.35, plumeTop);
+        ctx.closePath();
+        ctx.fill();
+
+        // Glow
+        ctx.shadowColor = 'rgba(255, 120, 30, 0.5)';
+        ctx.shadowBlur = 25;
+        ctx.fillStyle = 'rgba(255, 150, 50, 0.15)';
+        ctx.fillRect(-plumeW * 2, plumeTop - 5, plumeW * 4, plumeLen * 0.5);
+        ctx.shadowBlur = 0;
     }
 
-    // Engine bell
-    const bellGeo = new THREE.CylinderGeometry(0.35, 0.55, 0.4, 16, 1, true);
-    const bellMat = new THREE.MeshPhongMaterial({
-        color: 0x444444,
-        emissive: 0x111111,
-        side: THREE.DoubleSide,
-    });
-    const bell = new THREE.Mesh(bellGeo, bellMat);
-    bell.position.y = -0.2;
-    rocketGroup.add(bell);
-
-    // Exhaust glow (point light on rocket)
-    exhaust = new THREE.PointLight(0xff6622, 0, 30);
-    exhaust.position.y = -0.5;
-    rocketGroup.add(exhaust);
-
-    // Exhaust plume (cone, visible during boost)
-    const plumeGeo = new THREE.ConeGeometry(0.6, 4, 8);
-    const plumeMat = new THREE.MeshBasicMaterial({
-        color: 0xff8833,
-        transparent: true,
-        opacity: 0.7,
-    });
-    const plume = new THREE.Mesh(plumeGeo, plumeMat);
-    plume.position.y = -2.5;
-    plume.rotation.x = Math.PI; // point down
-    plume.visible = false;
-    plume.name = 'plume';
-    rocketGroup.add(plume);
-
-    // Inner plume (brighter core)
-    const coreGeo = new THREE.ConeGeometry(0.25, 3, 8);
-    const coreMat = new THREE.MeshBasicMaterial({
-        color: 0xffddaa,
-        transparent: true,
-        opacity: 0.9,
-    });
-    const core = new THREE.Mesh(coreGeo, coreMat);
-    core.position.y = -2;
-    core.rotation.x = Math.PI;
-    core.visible = false;
-    core.name = 'plume-core';
-    rocketGroup.add(core);
-
-    rocketGroup.position.y = 0;
-    scene.add(rocketGroup);
-
-    // Trail line — pre-allocate buffer to avoid GC churn
-    const trailGeo = new THREE.BufferGeometry();
-    const trailPositions = new Float32Array(TRAIL_MAX * 3);
-    trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
-    trailGeo.setDrawRange(0, 0);
-    const trailMat = new THREE.LineBasicMaterial({
-        color: 0x00c8ff,
-        transparent: true,
-        opacity: 0.4,
-    });
-    trail = new THREE.Line(trailGeo, trailMat);
-    scene.add(trail);
+    ctx.restore();
 }
 
-function createStars() {
-    const starGeo = new THREE.BufferGeometry();
-    const positions = [];
-    for (let i = 0; i < 1500; i++) {
-        const r = 5000 + Math.random() * 15000;
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.random() * Math.PI;
-        positions.push(
-            r * Math.sin(phi) * Math.cos(theta),
-            r * Math.cos(phi),
-            r * Math.sin(phi) * Math.sin(theta)
-        );
+function drawFlightScene() {
+    const ctx = flightCtx;
+    const w = canvasW;
+    const h = canvasH;
+
+    if (w <= 0 || h <= 0) return;
+
+    // Clear
+    ctx.fillStyle = '#060610';
+    ctx.fillRect(0, 0, w, h);
+
+    // Stars (fixed background)
+    ctx.fillStyle = '#aabbcc';
+    for (const s of stars) {
+        ctx.globalAlpha = s.a;
+        ctx.beginPath();
+        ctx.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2);
+        ctx.fill();
     }
-    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    const starMat = new THREE.PointsMaterial({
-        color: 0xaabbcc,
-        size: 3,
-        sizeAttenuation: true,
-        transparent: true,
-        opacity: 0.6,
-    });
-    scene.add(new THREE.Points(starGeo, starMat));
-}
+    ctx.globalAlpha = 1;
 
-function createAltitudeMarkers() {
-    // Altitude rings at various heights
-    const heights = [100, 500, 1000, 2000, 5000];
-    heights.forEach(h => {
-        const ringGeo = new THREE.RingGeometry(8, 8.3, 64);
-        const ringMat = new THREE.MeshBasicMaterial({
-            color: 0x00c8ff,
-            transparent: true,
-            opacity: 0.08,
-            side: THREE.DoubleSide,
-        });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.rotation.x = -Math.PI / 2;
-        ring.position.y = h;
-        scene.add(ring);
-    });
+    // Determine view scale: show ground to max altitude with padding
+    const viewMax = Math.max(20, state.maxAlt * 1.4, state.displayAlt * 1.4);
+    const groundY = h - 60;     // ground line position
+    const topY = 40;            // top margin
+    const scaleRange = groundY - topY; // pixels available
+
+    // Convert altitude to screen Y
+    const altToY = (alt) => groundY - (alt / viewMax) * scaleRange;
+
+    // Ground
+    ctx.fillStyle = '#0a1420';
+    ctx.fillRect(0, groundY, w, h - groundY);
+
+    // Ground line
+    ctx.strokeStyle = 'rgba(0, 200, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, groundY);
+    ctx.lineTo(w, groundY);
+    ctx.stroke();
+
+    // Launch pad
+    const padX = w * 0.5;
+    ctx.strokeStyle = 'rgba(0, 200, 255, 0.4)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padX - 20, groundY);
+    ctx.lineTo(padX + 20, groundY);
+    ctx.stroke();
+
+    // Pad center dot
+    ctx.fillStyle = 'rgba(0, 255, 136, 0.6)';
+    ctx.beginPath();
+    ctx.arc(padX, groundY, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Altitude grid lines
+    const niceSteps = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
+    let step = niceSteps[0];
+    for (const s of niceSteps) {
+        if (viewMax / s <= 8) { step = s; break; }
+    }
+
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    for (let a = step; a < viewMax; a += step) {
+        const y = altToY(a);
+        if (y < topY - 10 || y > groundY - 5) continue;
+
+        ctx.strokeStyle = 'rgba(0, 200, 255, 0.06)';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(40, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(200, 210, 230, 0.25)';
+        ctx.fillText(a + ' m', 36, y + 3);
+    }
+
+    // Trail
+    if (state.displayAlt > 0.3) {
+        ctx.strokeStyle = 'rgba(0, 200, 255, 0.15)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(padX, groundY);
+        ctx.lineTo(padX, altToY(state.displayAlt));
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // Rocket position
+    const rocketY = altToY(state.displayAlt);
+    const isBoosting = state.flightState === 'BOOST';
+
+    // Rocket size: fixed pixel size that looks good (doesn't shrink with altitude)
+    const rocketH = Math.max(36, Math.min(60, h * 0.08));
+    const tiltRad = (state.gyro.z * 0.0001); // subtle tilt from gyro
+
+    drawRocket(ctx, padX, rocketY, rocketH, isBoosting, tiltRad);
+
+    // Altitude callout next to rocket
+    if (state.displayAlt > 0.5) {
+        ctx.font = '11px JetBrains Mono, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(0, 200, 255, 0.7)';
+        ctx.fillText(state.displayAlt.toFixed(1) + ' m', padX + rocketH * 0.4 + 8, rocketY + 4);
+    }
 }
 
 // ---- Animation loop ----
-let animTime = 0;
+let lastFrameTime = 0;
 let lastHudUpdate = 0;
-const HUD_INTERVAL = 66; // ~15fps for DOM updates
+const HUD_INTERVAL = 50; // ~20fps for DOM updates
 
-// Cache plume/core references after first lookup
-let cachedPlume = null;
-let cachedCore = null;
-
-function animate() {
+function animate(timestamp) {
     requestAnimationFrame(animate);
+
+    // Proper delta time for frame-rate-independent interpolation
+    const dt = lastFrameTime ? (timestamp - lastFrameTime) / 1000 : 0.016;
+    lastFrameTime = timestamp;
     const now = performance.now();
-    animTime += 0.016;
 
     // --- Interpolation: predict position between 2Hz EKF updates ---
-    // Use velocity to extrapolate altitude smoothly between packets
-    const dtSinceEkf = (now - state.lastEkfTime) / 1000; // seconds
-    const interpDt = Math.min(dtSinceEkf, 0.6); // cap at 600ms to avoid runaway
+    const dtSinceEkf = (now - state.lastEkfTime) / 1000;
+    const interpDt = Math.min(dtSinceEkf, 0.6);
     const predictedAlt = Math.max(0, state.altitude + state.velocity * interpDt);
     const predictedVel = state.velocity + state.accelInput * 9.81 * interpDt;
 
-    // Smooth display values toward predicted values
-    state.displayAlt += (predictedAlt - state.displayAlt) * 0.12;
-    state.displayVel += (predictedVel - state.displayVel) * 0.12;
-    state.displayAcc += (state.accelInput - state.displayAcc) * 0.15;
+    // Exponential smoothing using actual frame dt for consistent feel
+    const smoothFactor = 1 - Math.exp(-8 * dt); // ~8Hz cutoff, frame-rate independent
+    state.displayAlt += (predictedAlt - state.displayAlt) * smoothFactor;
+    state.displayVel += (predictedVel - state.displayVel) * smoothFactor;
+    state.displayAcc += (state.accelInput - state.displayAcc) * smoothFactor;
 
-    // Update rocket position using smoothed display altitude
-    rocketGroup.position.y += (state.displayAlt - rocketGroup.position.y) * 0.15;
+    // Draw the 2D scene every frame
+    drawFlightScene();
 
-    // Subtle rotation from gyro data
-    const gxRad = (state.gyro.x * 0.0002);
-    const gzRad = (state.gyro.z * 0.0002);
-    rocketGroup.rotation.x += (gxRad - rocketGroup.rotation.x) * 0.05;
-    rocketGroup.rotation.z += (gzRad - rocketGroup.rotation.z) * 0.05;
-
-    // Exhaust effects (cache lookups)
-    const isBoosting = state.flightState === 'BOOST';
-    if (!cachedPlume) cachedPlume = rocketGroup.getObjectByName('plume');
-    if (!cachedCore) cachedCore = rocketGroup.getObjectByName('plume-core');
-
-    if (cachedPlume) {
-        cachedPlume.visible = isBoosting;
-        if (isBoosting) {
-            const flicker = 0.6 + Math.random() * 0.4;
-            cachedPlume.scale.set(flicker, 0.8 + Math.random() * 0.4, flicker);
-            cachedPlume.material.opacity = 0.5 + Math.random() * 0.3;
-        }
-    }
-    if (cachedCore) {
-        cachedCore.visible = isBoosting;
-        if (isBoosting) {
-            cachedCore.scale.set(0.8 + Math.random() * 0.3, 0.9 + Math.random() * 0.2, 0.8 + Math.random() * 0.3);
-        }
-    }
-    exhaust.intensity = isBoosting ? 2 + Math.random() : 0;
-
-    // Trail — reuse pre-allocated buffer
-    if (state.displayAlt > 0.5) {
-        if (trailPoints.length >= TRAIL_MAX) trailPoints.shift();
-        trailPoints.push({ x: rocketGroup.position.x, y: rocketGroup.position.y, z: rocketGroup.position.z });
-
-        const posAttr = trail.geometry.getAttribute('position');
-        for (let i = 0; i < trailPoints.length; i++) {
-            posAttr.array[i * 3]     = trailPoints[i].x;
-            posAttr.array[i * 3 + 1] = trailPoints[i].y;
-            posAttr.array[i * 3 + 2] = trailPoints[i].z;
-        }
-        posAttr.needsUpdate = true;
-        trail.geometry.setDrawRange(0, trailPoints.length);
-    }
-
-    // Camera: fixed side view that scales to show full trajectory
-    // Keeps rocket visible at all altitudes instead of shrinking to a dot
-    const viewHeight = Math.max(30, state.maxAlt * 1.3, state.displayAlt * 1.3);
-    const camDist = viewHeight * 0.8 + 20;
-    const targetCamX = camDist;
-    const targetCamZ = camDist * 0.3;
-    const targetCamY = viewHeight * 0.45;
-    const lookY = viewHeight * 0.4;
-
-    camera.position.x += (targetCamX - camera.position.x) * 0.03;
-    camera.position.y += (targetCamY - camera.position.y) * 0.03;
-    camera.position.z += (targetCamZ - camera.position.z) * 0.03;
-    camera.lookAt(0, lookY, 0);
-
-    renderer.render(scene, camera);
-
-    // Throttle DOM updates to ~15fps
+    // Throttle DOM updates
     if (now - lastHudUpdate > HUD_INTERVAL) {
         lastHudUpdate = now;
         updateHUD();
@@ -1266,7 +1198,7 @@ setInterval(updateGraphs, 200);
 // =========================================================================
 
 initScene();
-animate();
+requestAnimationFrame(animate);
 connectSSE();
 
 </script>
