@@ -142,6 +142,27 @@ static int test_ekf_covariance_grows(void)
     return 0;
 }
 
+static int test_ekf_velocity_zero_descent_at_ground(void)
+{
+    /* During DESCENT, once altitude reaches 0 velocity must also be zeroed */
+    flight_sm_set_mock_state(FLIGHT_DESCENT);
+    ekf_state_t ekf;
+    setup_ekf(&ekf);
+
+    /* Do a normal update first to advance last_tick */
+    ekf_update(&ekf, 1000, 100);
+
+    /* Force altitude just above zero with large downward velocity */
+    ekf.x[0] = 1.0f;
+    ekf.x[1] = -200.0f;
+
+    /* Update with dt=20ms to push altitude below zero: 1 + (-200)(0.02) = -3 */
+    ekf_update(&ekf, 1000, 120);
+    TEST_ASSERT_FLOAT_EQ(ekf.x[0], 0.0f, 0.001f);
+    TEST_ASSERT_FLOAT_EQ(ekf.x[1], 0.0f, 0.001f);
+    return 0;
+}
+
 static int test_ekf_zero_dt_skipped(void)
 {
     flight_sm_set_mock_state(FLIGHT_BOOST);
@@ -169,5 +190,6 @@ void run_ekf_tests(void)
     RUN_TEST(test_ekf_velocity_zero_landed);
     RUN_TEST(test_ekf_skip_large_dt);
     RUN_TEST(test_ekf_covariance_grows);
+    RUN_TEST(test_ekf_velocity_zero_descent_at_ground);
     RUN_TEST(test_ekf_zero_dt_skipped);
 }

@@ -124,6 +124,12 @@ void ekf_update(ekf_state_t *ekf, int32_t accel_z_mg, uint32_t tick_ms)
         if (ekf->x[0] < 0.0f) ekf->x[0] = 0.0f;
         if (state == FLIGHT_LANDED) ekf->x[1] = 0.0f;
     }
+
+    /* Once altitude hits ground during descent, zero both alt and velocity */
+    if (state == FLIGHT_DESCENT && ekf->x[0] <= 0.0f) {
+        ekf->x[0] = 0.0f;
+        ekf->x[1] = 0.0f;
+    }
 }
 
 /* ================================================================
