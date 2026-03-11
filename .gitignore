@@ -4,6 +4,7 @@ build/
 *.map
 *.o
 *.d
+test/run_tests
 .cache/
 __pycache__/
 *.pyc
