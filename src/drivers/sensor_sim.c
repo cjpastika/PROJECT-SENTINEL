@@ -8,6 +8,7 @@
  *   Phase 1 (BOOST):  high Z accel (thrust), slight rotation
  *   Phase 2 (COAST):  near-zero accel (microgravity), slow tumble
  *   Phase 3 (DESCENT): negative Z accel (drag), increasing rotation
+ *   Phase 4 (LANDED):  back on ground, accel ~= (0, 0, +1000 mg), gyro ~= 0
  *
  * Uses a simple LCG PRNG to add sensor noise without needing <stdlib.h>.
  * All values are in milli-g (accel) and milli-deg/s (gyro).
@@ -32,7 +33,8 @@ static int32_t prng_range(int32_t min, int32_t max)
 #define PHASE_PAD_END       5000    /* 0-5s:   on the pad */
 #define PHASE_BOOST_END     15000   /* 5-15s:  powered ascent */
 #define PHASE_COAST_END     30000   /* 15-30s: coasting */
-                                    /* 30s+:   descent */
+#define PHASE_DESCENT_END   45000   /* 30-45s: descent / landing */
+                                    /* 45s+:   on the ground */
 
 void hal_sensor_init(void)
 {
@@ -79,7 +81,7 @@ void hal_sensor_read_imu(imu_reading_t *reading)
         reading->gyro.y = -200 + prng_range(-50, 50);
         reading->gyro.z = 100 + prng_range(-50, 50);
 
-    } else {
+    } else if (now < PHASE_DESCENT_END) {
         /* DESCENT: drag deceleration, increasing rotation */
         uint32_t elapsed = now - PHASE_COAST_END;
         int32_t drag = -500 - (int32_t)(elapsed / 10);
@@ -92,5 +94,15 @@ void hal_sensor_read_imu(imu_reading_t *reading)
         reading->gyro.x = 1000 + prng_range(-300, 300);
         reading->gyro.y = -800 + prng_range(-300, 300);
         reading->gyro.z = 500 + prng_range(-200, 200);
+
+    } else {
+        /* LANDED: back on ground, gravity only */
+        reading->accel.x = prng_range(-15, 15);
+        reading->accel.y = prng_range(-15, 15);
+        reading->accel.z = 1000 + prng_range(-10, 10);
+
+        reading->gyro.x = prng_range(-50, 50);
+        reading->gyro.y = prng_range(-50, 50);
+        reading->gyro.z = prng_range(-30, 30);
     }
 }
