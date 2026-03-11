@@ -93,7 +93,7 @@ html, body {
 /* ---- Layout ---- */
 #app {
     display: grid;
-    grid-template-columns: 200px 1fr 360px;
+    grid-template-columns: 1fr 360px;
     grid-template-rows: 52px 1fr 220px;
     height: 100vh;
     gap: 1px;
@@ -303,49 +303,40 @@ html, body {
 .viewport-corner.bottom-left::before { bottom: 0; left: 0; width: 100%; height: 1px; }
 .viewport-corner.bottom-left::after { bottom: 0; left: 0; width: 1px; height: 100%; }
 
-/* ---- Left HUD sidebar ---- */
-#hud-sidebar {
-    background: var(--bg-panel);
-    backdrop-filter: blur(30px) saturate(1.1);
-    -webkit-backdrop-filter: blur(30px) saturate(1.1);
+/* ---- Graph header with big number ---- */
+.graph-header {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 0 var(--space-md);
-    gap: 32px;
-    border-right: 1px solid var(--glass-border);
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 4px;
 }
 
-.hud-item {
+.graph-header .graph-title {
+    font-family: var(--sans);
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 8px;
 }
 
-.hud-item .big-number {
-    font-size: 36px;
+.graph-header .graph-value {
+    font-size: 18px;
     font-weight: 700;
     color: #ffffff;
-    line-height: 1;
-    letter-spacing: -1px;
     font-family: var(--sans);
+    letter-spacing: -0.5px;
 }
 
-.hud-item .unit {
-    font-size: 12px;
+.graph-header .graph-value .graph-unit {
+    font-size: 10px;
     font-weight: 300;
     color: var(--text-secondary);
     font-family: var(--mono);
-}
-
-.hud-item .sub-label {
-    font-family: var(--sans);
-    font-size: 9px;
-    font-weight: 500;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--text-tertiary);
-    margin-bottom: 2px;
+    margin-left: 3px;
 }
 
 /* ---- Telemetry sidebar ---- */
@@ -513,27 +504,12 @@ html, body {
     padding: 10px 14px 6px 14px;
 }
 
-.graph-panel .graph-title {
-    font-family: var(--sans);
-    font-size: 8px;
-    font-weight: 600;
-    letter-spacing: 2.5px;
-    text-transform: uppercase;
-    color: var(--text-tertiary);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
 /* Colored dot before graph titles */
-.graph-panel:nth-child(1) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #b0e0f0; }
-.graph-panel:nth-child(2) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #b0e0f0; }
-.graph-panel:nth-child(3) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #b0e0f0; }
+.graph-header .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #b0e0f0; }
 
 .graph-panel canvas {
     width: 100%;
-    height: calc(100% - 24px);
+    height: calc(100% - 28px);
     display: block;
 }
 
@@ -652,22 +628,6 @@ html, body {
         <div id="flight-state-badge" class="IDLE">IDLE</div>
     </div>
 
-    <!-- Left HUD sidebar -->
-    <div id="hud-sidebar">
-        <div class="hud-item">
-            <div class="sub-label">Altitude</div>
-            <div><span class="big-number" id="hud-alt-val">0.0</span><span class="unit"> m</span></div>
-        </div>
-        <div class="hud-item">
-            <div class="sub-label">Velocity</div>
-            <div><span class="big-number" id="hud-vel-val">0.0</span><span class="unit"> m/s</span></div>
-        </div>
-        <div class="hud-item">
-            <div class="sub-label">Accel Z</div>
-            <div><span class="big-number" id="hud-acc-val">0.0</span><span class="unit"> g</span></div>
-        </div>
-    </div>
-
     <!-- 2D Viewport -->
     <div id="viewport">
         <canvas id="flight-canvas"></canvas>
@@ -735,15 +695,24 @@ html, body {
     <!-- Bottom graphs -->
     <div id="graphs">
         <div class="graph-panel">
-            <div class="graph-title">Altitude (m)</div>
+            <div class="graph-header">
+                <div class="graph-title">Altitude</div>
+                <div class="graph-value"><span id="hud-alt-val">0.0</span><span class="graph-unit">m</span></div>
+            </div>
             <canvas id="graph-alt"></canvas>
         </div>
         <div class="graph-panel">
-            <div class="graph-title">Velocity (m/s)</div>
+            <div class="graph-header">
+                <div class="graph-title">Velocity</div>
+                <div class="graph-value"><span id="hud-vel-val">0.0</span><span class="graph-unit">m/s</span></div>
+            </div>
             <canvas id="graph-vel"></canvas>
         </div>
         <div class="graph-panel">
-            <div class="graph-title">Acceleration (g)</div>
+            <div class="graph-header">
+                <div class="graph-title">Acceleration</div>
+                <div class="graph-value"><span id="hud-acc-val">0.0</span><span class="graph-unit">g</span></div>
+            </div>
             <canvas id="graph-acc"></canvas>
         </div>
     </div>
