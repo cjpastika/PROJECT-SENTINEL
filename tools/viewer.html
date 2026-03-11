@@ -579,9 +579,9 @@ html, body {
 }
 
 /* Colored dot before graph titles */
-.graph-panel:nth-child(1) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #ffffff; }
+.graph-panel:nth-child(1) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #b0e0f0; }
 .graph-panel:nth-child(2) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #b0e0f0; }
-.graph-panel:nth-child(3) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #78c8e8; }
+.graph-panel:nth-child(3) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #b0e0f0; }
 
 .graph-panel canvas {
     width: 100%;
@@ -1336,9 +1336,9 @@ function updateHUD() {
 
 // Color palette matching the new design system
 const graphColors = {
-    alt: { line: '#ffffff', glow: 'rgba(255, 255, 255, 0.08)' },
+    alt: { line: '#b0e0f0', glow: 'rgba(176, 224, 240, 0.08)' },
     vel: { line: '#b0e0f0', glow: 'rgba(176, 224, 240, 0.08)' },
-    acc: { line: '#78c8e8', glow: 'rgba(120, 200, 232, 0.08)' },
+    acc: { line: '#b0e0f0', glow: 'rgba(176, 224, 240, 0.08)' },
 };
 
 function drawGraph(canvasId, data, colorKey, unit) {
