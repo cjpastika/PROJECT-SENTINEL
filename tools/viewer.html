@@ -93,7 +93,7 @@ html, body {
 /* ---- Layout ---- */
 #app {
     display: grid;
-    grid-template-columns: 1fr 360px;
+    grid-template-columns: 200px 1fr 360px;
     grid-template-rows: 52px 1fr 220px;
     height: 100vh;
     gap: 1px;
@@ -303,20 +303,27 @@ html, body {
 .viewport-corner.bottom-left::before { bottom: 0; left: 0; width: 100%; height: 1px; }
 .viewport-corner.bottom-left::after { bottom: 0; left: 0; width: 1px; height: 100%; }
 
-/* HUD overlay on viewport */
-.hud-overlay {
-    position: absolute;
-    pointer-events: none;
-    z-index: 10;
+/* ---- Left HUD sidebar ---- */
+#hud-sidebar {
+    background: var(--bg-panel);
+    backdrop-filter: blur(30px) saturate(1.1);
+    -webkit-backdrop-filter: blur(30px) saturate(1.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 var(--space-md);
+    gap: 32px;
+    border-right: 1px solid var(--glass-border);
 }
 
-#hud-altitude {
-    top: 24px; left: 24px;
-    display: flex; flex-direction: column; gap: 4px;
+.hud-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
-#hud-altitude .big-number {
-    font-size: 52px;
+.hud-item .big-number {
+    font-size: 36px;
     font-weight: 700;
     color: #ffffff;
     line-height: 1;
@@ -324,73 +331,14 @@ html, body {
     font-family: var(--sans);
 }
 
-#hud-altitude .unit {
-    font-size: 16px;
-    font-weight: 300;
-    color: var(--text-secondary);
-    letter-spacing: 2px;
-    font-family: var(--mono);
-}
-
-#hud-altitude .sub-label {
-    font-family: var(--sans);
-    font-size: 9px;
-    font-weight: 500;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--text-tertiary);
-    margin-bottom: 2px;
-}
-
-#hud-velocity {
-    top: 136px; left: 24px;
-    display: flex; flex-direction: column; gap: 4px;
-}
-
-#hud-velocity .big-number {
-    font-size: 34px;
-    font-weight: 700;
-    color: #ffffff;
-    line-height: 1;
-    letter-spacing: -0.5px;
-    font-family: var(--sans);
-}
-
-#hud-velocity .unit {
-    font-size: 13px;
+.hud-item .unit {
+    font-size: 12px;
     font-weight: 300;
     color: var(--text-secondary);
     font-family: var(--mono);
 }
 
-#hud-velocity .sub-label {
-    font-family: var(--sans);
-    font-size: 9px;
-    font-weight: 500;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--text-tertiary);
-    margin-bottom: 2px;
-}
-
-#hud-accel {
-    top: 220px; left: 24px;
-}
-
-#hud-accel .big-number {
-    font-size: 22px;
-    font-weight: 700;
-    color: #ffffff;
-    font-family: var(--sans);
-}
-
-#hud-accel .unit {
-    font-size: 11px;
-    color: var(--text-secondary);
-    font-family: var(--mono);
-}
-
-#hud-accel .sub-label {
+.hud-item .sub-label {
     font-family: var(--sans);
     font-size: 9px;
     font-weight: 500;
@@ -704,6 +652,22 @@ html, body {
         <div id="flight-state-badge" class="IDLE">IDLE</div>
     </div>
 
+    <!-- Left HUD sidebar -->
+    <div id="hud-sidebar">
+        <div class="hud-item">
+            <div class="sub-label">Altitude</div>
+            <div><span class="big-number" id="hud-alt-val">0.0</span><span class="unit"> m</span></div>
+        </div>
+        <div class="hud-item">
+            <div class="sub-label">Velocity</div>
+            <div><span class="big-number" id="hud-vel-val">0.0</span><span class="unit"> m/s</span></div>
+        </div>
+        <div class="hud-item">
+            <div class="sub-label">Accel Z</div>
+            <div><span class="big-number" id="hud-acc-val">0.0</span><span class="unit"> g</span></div>
+        </div>
+    </div>
+
     <!-- 2D Viewport -->
     <div id="viewport">
         <canvas id="flight-canvas"></canvas>
@@ -711,18 +675,6 @@ html, body {
         <div class="viewport-corner top-right"></div>
         <div class="viewport-corner bottom-left"></div>
         <div class="viewport-corner bottom-right"></div>
-        <div id="hud-altitude" class="hud-overlay">
-            <div class="sub-label">Altitude</div>
-            <div><span class="big-number" id="hud-alt-val">0.0</span><span class="unit"> m</span></div>
-        </div>
-        <div id="hud-velocity" class="hud-overlay">
-            <div class="sub-label">Velocity</div>
-            <div><span class="big-number" id="hud-vel-val">0.0</span><span class="unit"> m/s</span></div>
-        </div>
-        <div id="hud-accel" class="hud-overlay">
-            <div class="sub-label">Accel Z</div>
-            <div><span class="big-number" id="hud-acc-val">0.0</span><span class="unit"> g</span></div>
-        </div>
         <div id="waiting-overlay">
             <div class="spinner"></div>
             <div class="waiting-text">Awaiting Telemetry</div>
@@ -1254,14 +1206,6 @@ function drawFlightScene() {
     const tiltRad = (state.gyro.z * 0.0001);
 
     drawRocket(ctx, padX, rocketY, rocketH, isBoosting, tiltRad);
-
-    // Altitude callout next to rocket
-    if (state.displayAlt > 0.5) {
-        ctx.font = '10px Inter, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.fillText(state.displayAlt.toFixed(1) + ' m', padX + rocketH * 0.4 + 10, rocketY + 3);
-    }
 }
 
 // ---- Animation loop ----
