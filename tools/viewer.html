@@ -40,7 +40,7 @@
     --accent-glow: rgba(255, 255, 255, 0.06);
     --accent-surface: rgba(255, 255, 255, 0.04);
 
-    /* Status colors — kept vivid against black */
+    /* Status colors — ice blue for accents that need color */
     --green: #30d158;
     --green-dim: rgba(48, 209, 88, 0.35);
     --green-surface: rgba(48, 209, 88, 0.08);
@@ -52,6 +52,11 @@
     --amber-surface: rgba(255, 214, 10, 0.08);
     --violet: #bf5af2;
     --violet-dim: rgba(191, 90, 242, 0.35);
+
+    /* Ice blue — for selective color highlights */
+    --ice: #b0e0f0;
+    --ice-dim: rgba(176, 224, 240, 0.35);
+    --ice-surface: rgba(176, 224, 240, 0.06);
 
     /* Text hierarchy — bold white, high contrast */
     --white: #ffffff;
@@ -215,8 +220,8 @@ html, body {
 #flight-state-badge.IDLE    { background: transparent; border-color: var(--border); color: var(--text-tertiary); }
 #flight-state-badge.ARMED   { background: var(--amber-surface); border-color: var(--amber-dim); color: var(--amber); }
 #flight-state-badge.BOOST   { background: var(--red-surface); border-color: var(--red-dim); color: var(--red); animation: pulse-boost 1.2s ease infinite; }
-#flight-state-badge.COAST   { background: var(--accent-surface); border-color: var(--accent-dim); color: var(--accent-bright); }
-#flight-state-badge.DESCENT { background: rgba(144, 120, 232, 0.06); border-color: var(--violet-dim); color: var(--violet); }
+#flight-state-badge.COAST   { background: var(--ice-surface); border-color: var(--ice-dim); color: var(--ice); }
+#flight-state-badge.DESCENT { background: var(--ice-surface); border-color: var(--ice-dim); color: var(--ice); }
 #flight-state-badge.LANDED  { background: var(--green-surface); border-color: var(--green-dim); color: var(--green); }
 
 @keyframes pulse-boost {
@@ -575,8 +580,8 @@ html, body {
 
 /* Colored dot before graph titles */
 .graph-panel:nth-child(1) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #ffffff; }
-.graph-panel:nth-child(2) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
-.graph-panel:nth-child(3) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--amber); }
+.graph-panel:nth-child(2) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #b0e0f0; }
+.graph-panel:nth-child(3) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #78c8e8; }
 
 .graph-panel canvas {
     width: 100%;
@@ -732,8 +737,8 @@ html, body {
             <div class="tlm-row"><span class="key">Altitude</span><span class="val" id="tlm-alt">—</span></div>
             <div class="tlm-row"><span class="key">Velocity</span><span class="val" id="tlm-vel">—</span></div>
             <div class="tlm-row"><span class="key">Accel Input</span><span class="val" id="tlm-accel-in">—</span></div>
-            <div class="tlm-row"><span class="key">Max Altitude</span><span class="val" id="tlm-max-alt" style="color:var(--accent)">—</span></div>
-            <div class="tlm-row"><span class="key">Max Velocity</span><span class="val" id="tlm-max-vel" style="color:var(--accent)">—</span></div>
+            <div class="tlm-row"><span class="key">Max Altitude</span><span class="val" id="tlm-max-alt" style="color:var(--ice)">—</span></div>
+            <div class="tlm-row"><span class="key">Max Velocity</span><span class="val" id="tlm-max-vel" style="color:var(--ice)">—</span></div>
         </div>
 
         <!-- IMU section -->
@@ -1063,8 +1068,8 @@ function drawRocket(ctx, cx, cy, rh, isBoosting, tiltRad) {
     ctx.rect(-bw, -bodyH / 2, bw * 2, bodyH);
     ctx.fill();
 
-    // Body stripe
-    ctx.fillStyle = 'rgba(94, 168, 212, 0.3)';
+    // Body stripe — ice blue
+    ctx.fillStyle = 'rgba(173, 216, 230, 0.35)';
     ctx.fillRect(-bw, -bodyH * 0.08, bw * 2, bodyH * 0.04);
 
     // Nose cone
@@ -1075,12 +1080,6 @@ function drawRocket(ctx, cx, cy, rh, isBoosting, tiltRad) {
     ctx.lineTo(bw, -bodyH / 2);
     ctx.bezierCurveTo(bw, -bodyH / 2 - 2, bw * 0.3, -bodyH / 2 - noseH * 0.4, 0, -bodyH / 2 - noseH);
     ctx.closePath();
-    ctx.fill();
-
-    // Nose tip accent
-    ctx.fillStyle = 'rgba(239, 68, 86, 0.8)';
-    ctx.beginPath();
-    ctx.arc(0, -bodyH / 2 - noseH + 2, 2, 0, Math.PI * 2);
     ctx.fill();
 
     // Fins — sleeker
@@ -1248,7 +1247,10 @@ function drawFlightScene() {
     // Rocket position
     const rocketY = altToY(state.displayAlt);
     const isBoosting = state.flightState === 'BOOST';
-    const rocketH = Math.max(36, Math.min(60, h * 0.08));
+    // Rocket shrinks as view zooms out — scale inversely with viewMax
+    const baseRocketH = Math.max(36, Math.min(60, h * 0.08));
+    const zoomScale = Math.min(1, 20 / viewMax);  // 1.0 at viewMax=20, shrinks as viewMax grows
+    const rocketH = Math.max(10, baseRocketH * Math.max(0.25, zoomScale));
     const tiltRad = (state.gyro.z * 0.0001);
 
     drawRocket(ctx, padX, rocketY, rocketH, isBoosting, tiltRad);
@@ -1335,8 +1337,8 @@ function updateHUD() {
 // Color palette matching the new design system
 const graphColors = {
     alt: { line: '#ffffff', glow: 'rgba(255, 255, 255, 0.08)' },
-    vel: { line: '#30d158', glow: 'rgba(48, 209, 88, 0.08)' },
-    acc: { line: '#ffd60a', glow: 'rgba(255, 214, 10, 0.08)' },
+    vel: { line: '#b0e0f0', glow: 'rgba(176, 224, 240, 0.08)' },
+    acc: { line: '#78c8e8', glow: 'rgba(120, 200, 232, 0.08)' },
 };
 
 function drawGraph(canvasId, data, colorKey, unit) {
