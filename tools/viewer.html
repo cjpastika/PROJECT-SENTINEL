@@ -15,50 +15,50 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-    /* Core palette — deep navy/black with cool undertones */
-    --bg-void: #05070e;
-    --bg: #080b14;
-    --bg-panel: rgba(8, 12, 24, 0.88);
-    --bg-card: rgba(12, 16, 30, 0.72);
-    --bg-card-hover: rgba(16, 22, 40, 0.82);
-    --bg-elevated: rgba(18, 24, 42, 0.65);
+    /* Core palette — pure black, SpaceX broadcast style */
+    --bg-void: #000000;
+    --bg: #000000;
+    --bg-panel: rgba(0, 0, 0, 0.95);
+    --bg-card: rgba(8, 8, 8, 0.9);
+    --bg-card-hover: rgba(16, 16, 16, 0.92);
+    --bg-elevated: rgba(20, 20, 20, 0.8);
 
     /* Glass effect */
-    --glass: rgba(15, 20, 38, 0.6);
-    --glass-border: rgba(120, 140, 180, 0.08);
-    --glass-highlight: rgba(180, 200, 240, 0.04);
+    --glass: rgba(10, 10, 10, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-highlight: rgba(255, 255, 255, 0.03);
 
     /* Borders */
-    --border: rgba(100, 130, 180, 0.07);
-    --border-active: rgba(100, 160, 220, 0.18);
-    --border-glow: rgba(100, 160, 220, 0.12);
+    --border: rgba(255, 255, 255, 0.06);
+    --border-active: rgba(255, 255, 255, 0.2);
+    --border-glow: rgba(255, 255, 255, 0.1);
 
-    /* Primary accent — cooler, more white-blue (SpaceX feel) */
-    --accent: #5ea8d4;
-    --accent-bright: #7ec8f0;
-    --accent-dim: rgba(94, 168, 212, 0.4);
-    --accent-glow: rgba(94, 168, 212, 0.08);
-    --accent-surface: rgba(94, 168, 212, 0.06);
+    /* Primary accent — clean white */
+    --accent: #ffffff;
+    --accent-bright: #ffffff;
+    --accent-dim: rgba(255, 255, 255, 0.4);
+    --accent-glow: rgba(255, 255, 255, 0.06);
+    --accent-surface: rgba(255, 255, 255, 0.04);
 
-    /* Status colors */
-    --green: #3ddc84;
-    --green-dim: rgba(61, 220, 132, 0.35);
-    --green-surface: rgba(61, 220, 132, 0.06);
-    --red: #ef4456;
-    --red-dim: rgba(239, 68, 86, 0.35);
-    --red-surface: rgba(239, 68, 86, 0.06);
-    --amber: #e8a838;
-    --amber-dim: rgba(232, 168, 56, 0.35);
-    --amber-surface: rgba(232, 168, 56, 0.06);
-    --violet: #9078e8;
-    --violet-dim: rgba(144, 120, 232, 0.35);
+    /* Status colors — kept vivid against black */
+    --green: #30d158;
+    --green-dim: rgba(48, 209, 88, 0.35);
+    --green-surface: rgba(48, 209, 88, 0.08);
+    --red: #ff453a;
+    --red-dim: rgba(255, 69, 58, 0.35);
+    --red-surface: rgba(255, 69, 58, 0.08);
+    --amber: #ffd60a;
+    --amber-dim: rgba(255, 214, 10, 0.35);
+    --amber-surface: rgba(255, 214, 10, 0.08);
+    --violet: #bf5af2;
+    --violet-dim: rgba(191, 90, 242, 0.35);
 
-    /* Text hierarchy */
-    --white: #e4e8f0;
-    --text-primary: #d0d6e2;
-    --text-secondary: rgba(180, 190, 210, 0.55);
-    --text-tertiary: rgba(140, 155, 180, 0.35);
-    --text-ghost: rgba(120, 135, 160, 0.22);
+    /* Text hierarchy — bold white, high contrast */
+    --white: #ffffff;
+    --text-primary: #f0f0f0;
+    --text-secondary: rgba(255, 255, 255, 0.55);
+    --text-tertiary: rgba(255, 255, 255, 0.3);
+    --text-ghost: rgba(255, 255, 255, 0.15);
 
     /* Typography */
     --mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
@@ -120,9 +120,9 @@ html, body {
     height: 1px;
     background: linear-gradient(90deg,
         transparent 0%,
-        var(--accent-glow) 20%,
-        var(--border-active) 50%,
-        var(--accent-glow) 80%,
+        rgba(255,255,255,0.04) 20%,
+        rgba(255,255,255,0.12) 50%,
+        rgba(255,255,255,0.04) 80%,
         transparent 100%
     );
 }
@@ -150,7 +150,7 @@ html, body {
     content: '';
     width: 18px;
     height: 18px;
-    border: 1.5px solid var(--accent);
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
     transform: rotate(45deg);
     flex-shrink: 0;
     opacity: 0.7;
@@ -239,8 +239,10 @@ html, body {
 /* ---- 2D Viewport ---- */
 #viewport {
     position: relative;
-    background: var(--bg-void);
+    background: #000000;
     overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.03), inset 0 0 30px rgba(0, 0, 0, 0.5);
 }
 
 #viewport canvas#flight-canvas {
@@ -255,14 +257,13 @@ html, body {
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(var(--text-ghost) 1px, transparent 1px),
-        linear-gradient(90deg, var(--text-ghost) 1px, transparent 1px);
+        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
     background-size: 80px 80px;
-    opacity: 0.12;
     pointer-events: none;
     z-index: 2;
-    mask-image: radial-gradient(ellipse at center, black 0%, transparent 75%);
-    -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 75%);
+    mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
 }
 
 /* Corner brackets (Anduril-style angular) */
@@ -278,7 +279,7 @@ html, body {
 .viewport-corner::after {
     content: '';
     position: absolute;
-    background: var(--accent-dim);
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .viewport-corner.top-right { top: 14px; right: 14px; }
@@ -311,8 +312,8 @@ html, body {
 
 #hud-altitude .big-number {
     font-size: 52px;
-    font-weight: 300;
-    color: var(--white);
+    font-weight: 700;
+    color: #ffffff;
     line-height: 1;
     letter-spacing: -1px;
     font-family: var(--sans);
@@ -343,8 +344,8 @@ html, body {
 
 #hud-velocity .big-number {
     font-size: 34px;
-    font-weight: 300;
-    color: var(--white);
+    font-weight: 700;
+    color: #ffffff;
     line-height: 1;
     letter-spacing: -0.5px;
     font-family: var(--sans);
@@ -373,8 +374,8 @@ html, body {
 
 #hud-accel .big-number {
     font-size: 22px;
-    font-weight: 300;
-    color: var(--white);
+    font-weight: 700;
+    color: #ffffff;
     font-family: var(--sans);
 }
 
@@ -430,7 +431,7 @@ html, body {
 }
 
 .panel-section:hover::before {
-    background: var(--accent-dim);
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .panel-section .section-title {
@@ -573,7 +574,7 @@ html, body {
 }
 
 /* Colored dot before graph titles */
-.graph-panel:nth-child(1) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.graph-panel:nth-child(1) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #ffffff; }
 .graph-panel:nth-child(2) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
 .graph-panel:nth-child(3) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--amber); }
 
@@ -600,7 +601,7 @@ html, body {
     left: -10%;
     width: 60%;
     height: 80%;
-    background: radial-gradient(ellipse, rgba(94, 168, 212, 0.015) 0%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(255, 255, 255, 0.008) 0%, transparent 70%);
 }
 
 /* Second glow */
@@ -611,7 +612,7 @@ html, body {
     right: -10%;
     width: 50%;
     height: 50%;
-    background: radial-gradient(ellipse, rgba(144, 120, 232, 0.01) 0%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(255, 255, 255, 0.005) 0%, transparent 70%);
 }
 
 /* ---- Scrollbar style ---- */
@@ -1117,10 +1118,10 @@ function drawRocket(ctx, cx, cy, rh, isBoosting, tiltRad) {
 
         // Outer plume
         const grad = ctx.createLinearGradient(0, plumeTop, 0, plumeTop + plumeLen);
-        grad.addColorStop(0, 'rgba(94, 168, 212, 0.7)');
-        grad.addColorStop(0.2, 'rgba(255, 160, 80, 0.6)');
-        grad.addColorStop(0.6, 'rgba(239, 68, 86, 0.3)');
-        grad.addColorStop(1, 'rgba(239, 68, 86, 0)');
+        grad.addColorStop(0, 'rgba(255, 220, 160, 0.8)');
+        grad.addColorStop(0.2, 'rgba(255, 140, 60, 0.6)');
+        grad.addColorStop(0.6, 'rgba(255, 69, 58, 0.3)');
+        grad.addColorStop(1, 'rgba(255, 69, 58, 0)');
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.moveTo(-plumeW, plumeTop);
@@ -1142,9 +1143,9 @@ function drawRocket(ctx, cx, cy, rh, isBoosting, tiltRad) {
         ctx.fill();
 
         // Soft glow
-        ctx.shadowColor = 'rgba(94, 168, 212, 0.3)';
+        ctx.shadowColor = 'rgba(255, 180, 80, 0.3)';
         ctx.shadowBlur = 30;
-        ctx.fillStyle = 'rgba(94, 168, 212, 0.06)';
+        ctx.fillStyle = 'rgba(255, 180, 80, 0.06)';
         ctx.fillRect(-plumeW * 3, plumeTop - 5, plumeW * 6, plumeLen * 0.5);
         ctx.shadowBlur = 0;
     }
@@ -1159,14 +1160,14 @@ function drawFlightScene() {
 
     if (w <= 0 || h <= 0) return;
 
-    // Clear — deep void
-    ctx.fillStyle = '#05070e';
+    // Clear — pure black
+    ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, w, h);
 
-    // Stars (subtle, dimmer than before)
+    // Stars (white on black)
     for (const s of stars) {
-        ctx.globalAlpha = s.a * 0.7;
-        ctx.fillStyle = '#8898b8';
+        ctx.globalAlpha = s.a * 0.6;
+        ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2);
         ctx.fill();
@@ -1182,14 +1183,11 @@ function drawFlightScene() {
     const altToY = (alt) => groundY - (alt / viewMax) * scaleRange;
 
     // Ground area
-    const groundGrad = ctx.createLinearGradient(0, groundY, 0, h);
-    groundGrad.addColorStop(0, '#0a1018');
-    groundGrad.addColorStop(1, '#060a10');
-    ctx.fillStyle = groundGrad;
+    ctx.fillStyle = '#080808';
     ctx.fillRect(0, groundY, w, h - groundY);
 
     // Ground line
-    ctx.strokeStyle = 'rgba(94, 168, 212, 0.12)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, groundY);
@@ -1198,7 +1196,7 @@ function drawFlightScene() {
 
     // Launch pad
     const padX = w * 0.5;
-    ctx.strokeStyle = 'rgba(94, 168, 212, 0.25)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(padX - 18, groundY);
@@ -1206,7 +1204,7 @@ function drawFlightScene() {
     ctx.stroke();
 
     // Pad center dot
-    ctx.fillStyle = 'rgba(61, 220, 132, 0.5)';
+    ctx.fillStyle = 'rgba(48, 209, 88, 0.6)';
     ctx.beginPath();
     ctx.arc(padX, groundY, 2.5, 0, Math.PI * 2);
     ctx.fill();
@@ -1224,20 +1222,20 @@ function drawFlightScene() {
         const y = altToY(a);
         if (y < topY - 10 || y > groundY - 5) continue;
 
-        ctx.strokeStyle = 'rgba(94, 168, 212, 0.035)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
         ctx.lineWidth = 0.5;
         ctx.beginPath();
         ctx.moveTo(44, y);
         ctx.lineTo(w, y);
         ctx.stroke();
 
-        ctx.fillStyle = 'rgba(180, 190, 210, 0.18)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
         ctx.fillText(a + ' m', 40, y + 3);
     }
 
     // Trail — thinner dashed line
     if (state.displayAlt > 0.3) {
-        ctx.strokeStyle = 'rgba(94, 168, 212, 0.1)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 5]);
         ctx.beginPath();
@@ -1259,7 +1257,7 @@ function drawFlightScene() {
     if (state.displayAlt > 0.5) {
         ctx.font = '10px Inter, sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillStyle = 'rgba(94, 168, 212, 0.5)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.fillText(state.displayAlt.toFixed(1) + ' m', padX + rocketH * 0.4 + 10, rocketY + 3);
     }
 }
@@ -1336,9 +1334,9 @@ function updateHUD() {
 
 // Color palette matching the new design system
 const graphColors = {
-    alt: { line: '#5ea8d4', glow: 'rgba(94, 168, 212, 0.12)' },
-    vel: { line: '#3ddc84', glow: 'rgba(61, 220, 132, 0.12)' },
-    acc: { line: '#e8a838', glow: 'rgba(232, 168, 56, 0.12)' },
+    alt: { line: '#ffffff', glow: 'rgba(255, 255, 255, 0.08)' },
+    vel: { line: '#30d158', glow: 'rgba(48, 209, 88, 0.08)' },
+    acc: { line: '#ffd60a', glow: 'rgba(255, 214, 10, 0.08)' },
 };
 
 function drawGraph(canvasId, data, colorKey, unit) {
@@ -1374,7 +1372,7 @@ function drawGraph(canvasId, data, colorKey, unit) {
     max += pad;
 
     // Grid lines — very subtle
-    ctx.strokeStyle = 'rgba(100, 130, 180, 0.04)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
     ctx.lineWidth = 0.5;
     for (let i = 0; i <= 4; i++) {
         const y = h * (i / 4);
@@ -1417,13 +1415,13 @@ function drawGraph(canvasId, data, colorKey, unit) {
 
     // Current value label
     const lastVal = data[data.length - 1];
-    ctx.fillStyle = 'rgba(180, 190, 210, 0.4)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.font = '9px Inter, sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText(lastVal.toFixed(1) + ' ' + unit, w - 2, 10);
 
     // Min/Max labels
-    ctx.fillStyle = 'rgba(180, 190, 210, 0.15)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
     ctx.fillText(max.toFixed(0), w - 2, 18);
     ctx.fillText(min.toFixed(0), w - 2, h - 2);
 }
