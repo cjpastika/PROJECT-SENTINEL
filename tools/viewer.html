@@ -7,48 +7,89 @@
 <style>
 /* ========================================================================
    PROJECT-SENTINEL Mission Control HUD
-   Aesthetic: dark aerospace / defense — Palantir/SpaceX/Anduril vibes
+   Aesthetic: SpaceX minimalism × Palantir data density × Anduril mil-tech
    ======================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@200;300;400;500;600;700;800&display=swap');
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-    --bg: #0a0a0f;
-    --bg-panel: rgba(10, 12, 20, 0.92);
-    --bg-card: rgba(18, 22, 35, 0.85);
-    --border: rgba(0, 200, 255, 0.12);
-    --border-active: rgba(0, 200, 255, 0.35);
-    --cyan: #00c8ff;
-    --cyan-dim: rgba(0, 200, 255, 0.5);
-    --cyan-glow: rgba(0, 200, 255, 0.15);
-    --green: #00ff88;
-    --green-dim: rgba(0, 255, 136, 0.5);
-    --red: #ff3355;
-    --orange: #ff8800;
-    --yellow: #ffcc00;
-    --white: #e8edf5;
-    --gray: #5a6278;
-    --text-dim: rgba(200, 210, 230, 0.5);
-    --mono: 'JetBrains Mono', 'Consolas', monospace;
-    --sans: 'Inter', -apple-system, sans-serif;
+    /* Core palette — deep navy/black with cool undertones */
+    --bg-void: #05070e;
+    --bg: #080b14;
+    --bg-panel: rgba(8, 12, 24, 0.88);
+    --bg-card: rgba(12, 16, 30, 0.72);
+    --bg-card-hover: rgba(16, 22, 40, 0.82);
+    --bg-elevated: rgba(18, 24, 42, 0.65);
+
+    /* Glass effect */
+    --glass: rgba(15, 20, 38, 0.6);
+    --glass-border: rgba(120, 140, 180, 0.08);
+    --glass-highlight: rgba(180, 200, 240, 0.04);
+
+    /* Borders */
+    --border: rgba(100, 130, 180, 0.07);
+    --border-active: rgba(100, 160, 220, 0.18);
+    --border-glow: rgba(100, 160, 220, 0.12);
+
+    /* Primary accent — cooler, more white-blue (SpaceX feel) */
+    --accent: #5ea8d4;
+    --accent-bright: #7ec8f0;
+    --accent-dim: rgba(94, 168, 212, 0.4);
+    --accent-glow: rgba(94, 168, 212, 0.08);
+    --accent-surface: rgba(94, 168, 212, 0.06);
+
+    /* Status colors */
+    --green: #3ddc84;
+    --green-dim: rgba(61, 220, 132, 0.35);
+    --green-surface: rgba(61, 220, 132, 0.06);
+    --red: #ef4456;
+    --red-dim: rgba(239, 68, 86, 0.35);
+    --red-surface: rgba(239, 68, 86, 0.06);
+    --amber: #e8a838;
+    --amber-dim: rgba(232, 168, 56, 0.35);
+    --amber-surface: rgba(232, 168, 56, 0.06);
+    --violet: #9078e8;
+    --violet-dim: rgba(144, 120, 232, 0.35);
+
+    /* Text hierarchy */
+    --white: #e4e8f0;
+    --text-primary: #d0d6e2;
+    --text-secondary: rgba(180, 190, 210, 0.55);
+    --text-tertiary: rgba(140, 155, 180, 0.35);
+    --text-ghost: rgba(120, 135, 160, 0.22);
+
+    /* Typography */
+    --mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+    --sans: 'Inter', -apple-system, 'Helvetica Neue', sans-serif;
+
+    /* Spacing scale */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+
+    /* Transitions */
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html, body {
     height: 100%;
-    background: var(--bg);
+    background: var(--bg-void);
     color: var(--white);
     font-family: var(--mono);
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* ---- Layout ---- */
 #app {
     display: grid;
-    grid-template-columns: 1fr 380px;
-    grid-template-rows: 56px 1fr 240px;
+    grid-template-columns: 1fr 360px;
+    grid-template-rows: 52px 1fr 220px;
     height: 100vh;
     gap: 1px;
     background: var(--border);
@@ -58,106 +99,147 @@ html, body {
 #topbar {
     grid-column: 1 / -1;
     background: var(--bg-panel);
+    backdrop-filter: blur(40px) saturate(1.2);
+    -webkit-backdrop-filter: blur(40px) saturate(1.2);
     display: flex;
     align-items: center;
-    padding: 0 24px;
-    gap: 24px;
-    border-bottom: 1px solid var(--border);
+    padding: 0 var(--space-lg);
+    gap: 20px;
+    border-bottom: 1px solid var(--glass-border);
     z-index: 100;
+    position: relative;
+}
+
+/* Subtle bottom highlight line */
+#topbar::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        var(--accent-glow) 20%,
+        var(--border-active) 50%,
+        var(--accent-glow) 80%,
+        transparent 100%
+    );
 }
 
 #topbar .logo {
     font-family: var(--sans);
     font-weight: 700;
-    font-size: 15px;
-    letter-spacing: 4px;
+    font-size: 13px;
+    letter-spacing: 5px;
     text-transform: uppercase;
-    color: var(--cyan);
-    text-shadow: 0 0 20px var(--cyan-glow);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 #topbar .logo span {
-    color: var(--gray);
-    font-weight: 400;
+    font-weight: 300;
+    color: var(--text-secondary);
+    letter-spacing: 3px;
+}
+
+/* Geometric logo mark */
+#topbar .logo::before {
+    content: '';
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--accent);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+    opacity: 0.7;
 }
 
 #topbar .separator {
     width: 1px;
-    height: 24px;
+    height: 20px;
     background: var(--border);
 }
 
 #mission-clock {
-    font-size: 22px;
-    font-weight: 500;
+    font-size: 20px;
+    font-weight: 400;
     letter-spacing: 2px;
-    color: var(--white);
+    color: var(--text-primary);
     font-variant-numeric: tabular-nums;
 }
 
-#mission-clock.negative { color: var(--orange); }
+#mission-clock.negative { color: var(--amber); }
 #mission-clock.positive { color: var(--green); }
 
 .topbar-stat {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 1px;
 }
 
 .topbar-stat .label {
-    font-size: 9px;
+    font-family: var(--sans);
+    font-size: 8px;
+    font-weight: 500;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--gray);
+    color: var(--text-tertiary);
 }
 
 .topbar-stat .value {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--white);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-primary);
     font-variant-numeric: tabular-nums;
 }
 
 #flight-state-badge {
     margin-left: auto;
-    padding: 6px 20px;
-    border-radius: 2px;
+    padding: 5px 18px;
     font-family: var(--sans);
-    font-weight: 700;
-    font-size: 13px;
+    font-weight: 600;
+    font-size: 11px;
     letter-spacing: 3px;
     text-transform: uppercase;
-    background: rgba(90, 98, 120, 0.3);
-    border: 1px solid var(--gray);
-    color: var(--gray);
-    transition: all 0.3s ease;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-tertiary);
+    transition: all 0.4s var(--ease);
+    position: relative;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
 }
 
-#flight-state-badge.IDLE    { background: rgba(90, 98, 120, 0.3); border-color: var(--gray); color: var(--gray); }
-#flight-state-badge.ARMED   { background: rgba(255, 136, 0, 0.15); border-color: var(--orange); color: var(--orange); box-shadow: 0 0 20px rgba(255, 136, 0, 0.1); }
-#flight-state-badge.BOOST   { background: rgba(255, 51, 85, 0.15); border-color: var(--red); color: var(--red); box-shadow: 0 0 30px rgba(255, 51, 85, 0.15); animation: pulse-red 0.8s ease infinite; }
-#flight-state-badge.COAST   { background: rgba(0, 200, 255, 0.12); border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 20px var(--cyan-glow); }
-#flight-state-badge.DESCENT { background: rgba(160, 120, 255, 0.15); border-color: #a078ff; color: #a078ff; box-shadow: 0 0 20px rgba(160, 120, 255, 0.1); }
-#flight-state-badge.LANDED  { background: rgba(0, 255, 136, 0.12); border-color: var(--green); color: var(--green); box-shadow: 0 0 20px rgba(0, 255, 136, 0.1); }
+#flight-state-badge.IDLE    { background: transparent; border-color: var(--border); color: var(--text-tertiary); }
+#flight-state-badge.ARMED   { background: var(--amber-surface); border-color: var(--amber-dim); color: var(--amber); }
+#flight-state-badge.BOOST   { background: var(--red-surface); border-color: var(--red-dim); color: var(--red); animation: pulse-boost 1.2s ease infinite; }
+#flight-state-badge.COAST   { background: var(--accent-surface); border-color: var(--accent-dim); color: var(--accent-bright); }
+#flight-state-badge.DESCENT { background: rgba(144, 120, 232, 0.06); border-color: var(--violet-dim); color: var(--violet); }
+#flight-state-badge.LANDED  { background: var(--green-surface); border-color: var(--green-dim); color: var(--green); }
 
-@keyframes pulse-red {
-    0%, 100% { box-shadow: 0 0 20px rgba(255, 51, 85, 0.15); }
-    50%      { box-shadow: 0 0 40px rgba(255, 51, 85, 0.3); }
+@keyframes pulse-boost {
+    0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 86, 0.08); }
+    50%      { box-shadow: 0 0 30px rgba(239, 68, 86, 0.18); }
 }
 
 #connection-dot {
-    width: 8px; height: 8px;
+    width: 6px; height: 6px;
     border-radius: 50%;
-    background: var(--gray);
-    transition: background 0.3s;
+    background: var(--text-ghost);
+    transition: all 0.4s var(--ease);
+    flex-shrink: 0;
 }
-#connection-dot.connected { background: var(--green); box-shadow: 0 0 8px var(--green-dim); }
+#connection-dot.connected {
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green-dim), 0 0 2px var(--green);
+}
 
 /* ---- 2D Viewport ---- */
 #viewport {
     position: relative;
-    background: #060610;
+    background: var(--bg-void);
     overflow: hidden;
 }
 
@@ -165,8 +247,55 @@ html, body {
     display: block;
     width: 100%;
     height: 100%;
-    background: #060610;
 }
+
+/* Geometric grid overlay on viewport */
+#viewport::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(var(--text-ghost) 1px, transparent 1px),
+        linear-gradient(90deg, var(--text-ghost) 1px, transparent 1px);
+    background-size: 80px 80px;
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 2;
+    mask-image: radial-gradient(ellipse at center, black 0%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 75%);
+}
+
+/* Corner brackets (Anduril-style angular) */
+.viewport-corner {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.viewport-corner::before,
+.viewport-corner::after {
+    content: '';
+    position: absolute;
+    background: var(--accent-dim);
+}
+
+.viewport-corner.top-right { top: 14px; right: 14px; }
+.viewport-corner.top-right::before { top: 0; right: 0; width: 100%; height: 1px; }
+.viewport-corner.top-right::after { top: 0; right: 0; width: 1px; height: 100%; }
+
+.viewport-corner.top-left { top: 14px; left: 14px; }
+.viewport-corner.top-left::before { top: 0; left: 0; width: 100%; height: 1px; }
+.viewport-corner.top-left::after { top: 0; left: 0; width: 1px; height: 100%; }
+
+.viewport-corner.bottom-right { bottom: 14px; right: 14px; }
+.viewport-corner.bottom-right::before { bottom: 0; right: 0; width: 100%; height: 1px; }
+.viewport-corner.bottom-right::after { bottom: 0; right: 0; width: 1px; height: 100%; }
+
+.viewport-corner.bottom-left { bottom: 14px; left: 14px; }
+.viewport-corner.bottom-left::before { bottom: 0; left: 0; width: 100%; height: 1px; }
+.viewport-corner.bottom-left::after { bottom: 0; left: 0; width: 1px; height: 100%; }
 
 /* HUD overlay on viewport */
 .hud-overlay {
@@ -176,125 +305,152 @@ html, body {
 }
 
 #hud-altitude {
-    top: 20px; left: 20px;
+    top: 24px; left: 24px;
     display: flex; flex-direction: column; gap: 4px;
 }
 
 #hud-altitude .big-number {
-    font-size: 48px;
-    font-weight: 700;
+    font-size: 52px;
+    font-weight: 300;
     color: var(--white);
     line-height: 1;
-    text-shadow: 0 0 30px rgba(0, 200, 255, 0.3);
+    letter-spacing: -1px;
+    font-family: var(--sans);
 }
 
 #hud-altitude .unit {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 300;
-    color: var(--cyan-dim);
+    color: var(--text-secondary);
     letter-spacing: 2px;
+    font-family: var(--mono);
 }
 
 #hud-altitude .sub-label {
+    font-family: var(--sans);
     font-size: 9px;
+    font-weight: 500;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: var(--gray);
-    margin-top: 2px;
+    color: var(--text-tertiary);
+    margin-bottom: 2px;
 }
 
 #hud-velocity {
-    top: 130px; left: 20px;
+    top: 136px; left: 24px;
     display: flex; flex-direction: column; gap: 4px;
 }
 
 #hud-velocity .big-number {
-    font-size: 32px;
-    font-weight: 500;
+    font-size: 34px;
+    font-weight: 300;
     color: var(--white);
     line-height: 1;
+    letter-spacing: -0.5px;
+    font-family: var(--sans);
 }
 
 #hud-velocity .unit {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 300;
-    color: var(--cyan-dim);
+    color: var(--text-secondary);
+    font-family: var(--mono);
 }
 
 #hud-velocity .sub-label {
+    font-family: var(--sans);
     font-size: 9px;
+    font-weight: 500;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: var(--gray);
-    margin-top: 2px;
+    color: var(--text-tertiary);
+    margin-bottom: 2px;
 }
 
 #hud-accel {
-    top: 210px; left: 20px;
+    top: 220px; left: 24px;
 }
 
 #hud-accel .big-number {
-    font-size: 24px;
-    font-weight: 500;
+    font-size: 22px;
+    font-weight: 300;
     color: var(--white);
+    font-family: var(--sans);
 }
 
 #hud-accel .unit {
-    font-size: 12px;
-    color: var(--cyan-dim);
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: var(--mono);
 }
 
 #hud-accel .sub-label {
+    font-family: var(--sans);
     font-size: 9px;
+    font-weight: 500;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: var(--gray);
-    margin-top: 2px;
+    color: var(--text-tertiary);
+    margin-bottom: 2px;
 }
-
-/* Corner brackets decoration */
-#viewport::before, #viewport::after {
-    content: '';
-    position: absolute;
-    width: 40px; height: 40px;
-    border: 1px solid var(--border-active);
-    z-index: 5;
-    pointer-events: none;
-}
-#viewport::before { top: 12px; right: 12px; border-left: none; border-bottom: none; }
-#viewport::after  { bottom: 12px; left: 12px; border-right: none; border-top: none; }
 
 /* ---- Telemetry sidebar ---- */
 #sidebar {
     background: var(--bg-panel);
+    backdrop-filter: blur(30px) saturate(1.1);
+    -webkit-backdrop-filter: blur(30px) saturate(1.1);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 1px;
-    border-left: 1px solid var(--border);
+    border-left: 1px solid var(--glass-border);
 }
 
 .panel-section {
     padding: 14px 16px;
     background: var(--bg-card);
+    transition: background 0.3s var(--ease);
+    position: relative;
+}
+
+.panel-section:hover {
+    background: var(--bg-card-hover);
+}
+
+/* Left accent line on panel sections */
+.panel-section::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: var(--border);
+    transition: background 0.3s var(--ease);
+}
+
+.panel-section:hover::before {
+    background: var(--accent-dim);
 }
 
 .panel-section .section-title {
+    font-family: var(--sans);
     font-size: 9px;
+    font-weight: 600;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: var(--gray);
+    color: var(--text-tertiary);
     margin-bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .section-title::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: var(--border);
+    background: linear-gradient(90deg, var(--border), transparent);
 }
 
 /* Telemetry rows */
@@ -307,23 +463,25 @@ html, body {
 }
 
 .tlm-row .key {
-    color: var(--text-dim);
+    font-family: var(--sans);
+    color: var(--text-secondary);
     font-size: 10px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+    font-weight: 400;
+    letter-spacing: 0.5px;
 }
 
 .tlm-row .val {
-    font-weight: 500;
+    font-weight: 400;
     font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
     transition: color 0.2s;
 }
 
 /* TMR health indicators */
 .tmr-channels {
     display: flex;
-    gap: 8px;
-    margin-top: 6px;
+    gap: 6px;
+    margin-top: 8px;
 }
 
 .tmr-chan {
@@ -331,25 +489,29 @@ html, body {
     text-align: center;
     padding: 6px 4px;
     border: 1px solid var(--border);
-    border-radius: 2px;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.2);
+    transition: all 0.3s var(--ease);
+    clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
 }
 
 .tmr-chan .chan-label {
-    font-size: 8px;
+    font-family: var(--sans);
+    font-size: 7px;
+    font-weight: 600;
     letter-spacing: 2px;
-    color: var(--gray);
+    color: var(--text-tertiary);
     margin-bottom: 4px;
 }
 
 .tmr-chan .chan-value {
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 400;
+    color: var(--text-primary);
 }
 
-.tmr-chan.healthy { border-color: rgba(0, 255, 136, 0.3); }
+.tmr-chan.healthy { border-color: var(--green-dim); background: var(--green-surface); }
 .tmr-chan.healthy .chan-label { color: var(--green-dim); }
-.tmr-chan.fault { border-color: rgba(255, 51, 85, 0.4); background: rgba(255, 51, 85, 0.06); }
+.tmr-chan.fault { border-color: var(--red-dim); background: var(--red-surface); }
 .tmr-chan.fault .chan-label { color: var(--red); }
 
 /* Fault log */
@@ -360,20 +522,20 @@ html, body {
 }
 
 .fault-entry {
-    padding: 3px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
     display: flex;
     gap: 8px;
     align-items: baseline;
 }
 
-.fault-entry .fault-time { color: var(--gray); font-size: 9px; min-width: 50px; }
-.fault-entry .fault-sev { font-weight: 600; font-size: 9px; letter-spacing: 1px; }
-.fault-entry .fault-sev.INFO { color: var(--cyan); }
-.fault-entry .fault-sev.WARNING { color: var(--orange); }
+.fault-entry .fault-time { color: var(--text-tertiary); font-size: 9px; min-width: 50px; }
+.fault-entry .fault-sev { font-weight: 600; font-size: 8px; letter-spacing: 1.5px; font-family: var(--sans); }
+.fault-entry .fault-sev.INFO { color: var(--accent); }
+.fault-entry .fault-sev.WARNING { color: var(--amber); }
 .fault-entry .fault-sev.ERROR { color: var(--red); }
 .fault-entry .fault-sev.CRITICAL { color: var(--red); animation: blink 1s step-end infinite; }
-.fault-entry .fault-msg { color: var(--text-dim); }
+.fault-entry .fault-msg { color: var(--text-secondary); }
 
 @keyframes blink {
     50% { opacity: 0.3; }
@@ -383,51 +545,77 @@ html, body {
 #graphs {
     grid-column: 1 / -1;
     background: var(--bg-panel);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 1px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--glass-border);
 }
 
 .graph-panel {
     position: relative;
     background: var(--bg-card);
-    padding: 8px 12px 4px 12px;
+    padding: 10px 14px 6px 14px;
 }
 
 .graph-panel .graph-title {
-    font-size: 9px;
-    letter-spacing: 2px;
+    font-family: var(--sans);
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
     text-transform: uppercase;
-    color: var(--gray);
-    margin-bottom: 4px;
+    color: var(--text-tertiary);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
+
+/* Colored dot before graph titles */
+.graph-panel:nth-child(1) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.graph-panel:nth-child(2) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
+.graph-panel:nth-child(3) .graph-title::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--amber); }
 
 .graph-panel canvas {
     width: 100%;
-    height: calc(100% - 22px);
+    height: calc(100% - 24px);
     display: block;
-    background: var(--bg-card);
 }
 
-/* ---- Scanline overlay (subtle) ---- */
-#scanlines {
+/* ---- Ambient background effects ---- */
+#ambient-bg {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    inset: 0;
     pointer-events: none;
-    z-index: 9999;
-    background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.03) 2px,
-        rgba(0, 0, 0, 0.03) 4px
-    );
-    mix-blend-mode: multiply;
+    z-index: 0;
+    overflow: hidden;
+}
+
+/* Soft radial glow in viewport area */
+#ambient-bg::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    left: -10%;
+    width: 60%;
+    height: 80%;
+    background: radial-gradient(ellipse, rgba(94, 168, 212, 0.015) 0%, transparent 70%);
+}
+
+/* Second glow */
+#ambient-bg::after {
+    content: '';
+    position: absolute;
+    bottom: -10%;
+    right: -10%;
+    width: 50%;
+    height: 50%;
+    background: radial-gradient(ellipse, rgba(144, 120, 232, 0.01) 0%, transparent 70%);
 }
 
 /* ---- Scrollbar style ---- */
-::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 2px; }
 
@@ -440,28 +628,56 @@ html, body {
     align-items: center;
     justify-content: center;
     z-index: 50;
-    background: rgba(10, 10, 15, 0.85);
-    transition: opacity 0.5s;
+    background: rgba(5, 7, 14, 0.88);
+    backdrop-filter: blur(8px);
+    transition: opacity 0.6s var(--ease);
 }
 
 #waiting-overlay.hidden { opacity: 0; pointer-events: none; }
 
 #waiting-overlay .waiting-text {
     font-family: var(--sans);
-    font-size: 14px;
-    letter-spacing: 4px;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 6px;
     text-transform: uppercase;
-    color: var(--gray);
-    animation: fade-pulse 2s ease infinite;
+    color: var(--text-tertiary);
+    animation: fade-pulse 2.5s ease infinite;
+}
+
+/* Geometric spinner above waiting text */
+#waiting-overlay .spinner {
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid var(--border);
+    transform: rotate(45deg);
+    margin-bottom: 24px;
+    animation: spin-diamond 3s linear infinite;
+}
+
+@keyframes spin-diamond {
+    0%   { transform: rotate(45deg); border-color: var(--border); }
+    25%  { border-color: var(--accent-dim); }
+    50%  { transform: rotate(225deg); border-color: var(--border-active); }
+    75%  { border-color: var(--accent-dim); }
+    100% { transform: rotate(405deg); border-color: var(--border); }
 }
 
 @keyframes fade-pulse {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 1; }
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+}
+
+/* ---- Utility: data highlight flash ---- */
+@keyframes data-flash {
+    0% { color: var(--accent-bright); }
+    100% { color: var(--text-primary); }
 }
 </style>
 </head>
 <body>
+
+<div id="ambient-bg"></div>
 
 <div id="app">
     <!-- Top bar -->
@@ -485,6 +701,10 @@ html, body {
     <!-- 2D Viewport -->
     <div id="viewport">
         <canvas id="flight-canvas"></canvas>
+        <div class="viewport-corner top-left"></div>
+        <div class="viewport-corner top-right"></div>
+        <div class="viewport-corner bottom-left"></div>
+        <div class="viewport-corner bottom-right"></div>
         <div id="hud-altitude" class="hud-overlay">
             <div class="sub-label">Altitude</div>
             <div><span class="big-number" id="hud-alt-val">0.0</span><span class="unit"> m</span></div>
@@ -498,6 +718,7 @@ html, body {
             <div><span class="big-number" id="hud-acc-val">0.0</span><span class="unit"> g</span></div>
         </div>
         <div id="waiting-overlay">
+            <div class="spinner"></div>
             <div class="waiting-text">Awaiting Telemetry</div>
         </div>
     </div>
@@ -510,8 +731,8 @@ html, body {
             <div class="tlm-row"><span class="key">Altitude</span><span class="val" id="tlm-alt">—</span></div>
             <div class="tlm-row"><span class="key">Velocity</span><span class="val" id="tlm-vel">—</span></div>
             <div class="tlm-row"><span class="key">Accel Input</span><span class="val" id="tlm-accel-in">—</span></div>
-            <div class="tlm-row"><span class="key">Max Altitude</span><span class="val" id="tlm-max-alt" style="color:var(--cyan)">—</span></div>
-            <div class="tlm-row"><span class="key">Max Velocity</span><span class="val" id="tlm-max-vel" style="color:var(--cyan)">—</span></div>
+            <div class="tlm-row"><span class="key">Max Altitude</span><span class="val" id="tlm-max-alt" style="color:var(--accent)">—</span></div>
+            <div class="tlm-row"><span class="key">Max Velocity</span><span class="val" id="tlm-max-vel" style="color:var(--accent)">—</span></div>
         </div>
 
         <!-- IMU section -->
@@ -570,11 +791,9 @@ html, body {
     </div>
 </div>
 
-<div id="scanlines"></div>
-
 <script>
 // =========================================================================
-// SENTINEL Mission Control — 3D Launch Viewer
+// SENTINEL Mission Control — Flight Viewer
 // =========================================================================
 
 // ---- State ----
@@ -746,7 +965,7 @@ function updateTMR() {
     $('tlm-tmr-alt').textContent = state.tmr.voted_alt.toFixed(1) + ' m';
     $('tlm-tmr-vel').textContent = state.tmr.voted_vel.toFixed(1) + ' m/s';
     $('tlm-tmr-dis').textContent = state.tmr.disagree;
-    $('tlm-tmr-dis').style.color = state.tmr.disagree > 0 ? 'var(--orange)' : 'var(--white)';
+    $('tlm-tmr-dis').style.color = state.tmr.disagree > 0 ? 'var(--amber)' : 'var(--text-primary)';
 
     for (let i = 0; i < 3; i++) {
         const el = $('tmr-ch' + i);
@@ -795,12 +1014,12 @@ let canvasW = 0, canvasH = 0;
 
 // Pre-generate stars once
 const stars = [];
-for (let i = 0; i < 200; i++) {
+for (let i = 0; i < 180; i++) {
     stars.push({
         x: Math.random(),
         y: Math.random(),
-        r: 0.5 + Math.random() * 1.5,
-        a: 0.2 + Math.random() * 0.5,
+        r: 0.3 + Math.random() * 1.2,
+        a: 0.1 + Math.random() * 0.35,
     });
 }
 
@@ -827,94 +1046,106 @@ function drawRocket(ctx, cx, cy, rh, isBoosting, tiltRad) {
     ctx.translate(cx, cy);
     ctx.rotate(tiltRad);
 
-    const bw = rh * 0.18;  // body half-width
+    const bw = rh * 0.16;  // body half-width
     const bodyH = rh * 0.6;
-    const noseH = rh * 0.25;
-    const finH = rh * 0.2;
-    const finW = rh * 0.22;
+    const noseH = rh * 0.28;
+    const finW = rh * 0.2;
 
     // Body
-    ctx.fillStyle = '#c8d0e0';
+    const bodyGrad = ctx.createLinearGradient(-bw, 0, bw, 0);
+    bodyGrad.addColorStop(0, '#8090a8');
+    bodyGrad.addColorStop(0.3, '#c8d4e4');
+    bodyGrad.addColorStop(0.7, '#c8d4e4');
+    bodyGrad.addColorStop(1, '#8090a8');
+    ctx.fillStyle = bodyGrad;
     ctx.beginPath();
     ctx.rect(-bw, -bodyH / 2, bw * 2, bodyH);
     ctx.fill();
 
     // Body stripe
-    ctx.fillStyle = '#556688';
-    ctx.fillRect(-bw, -bodyH * 0.1, bw * 2, bodyH * 0.08);
+    ctx.fillStyle = 'rgba(94, 168, 212, 0.3)';
+    ctx.fillRect(-bw, -bodyH * 0.08, bw * 2, bodyH * 0.04);
 
     // Nose cone
-    ctx.fillStyle = '#ff3355';
+    ctx.fillStyle = '#e4e8f0';
     ctx.beginPath();
     ctx.moveTo(0, -bodyH / 2 - noseH);
-    ctx.lineTo(-bw, -bodyH / 2);
+    ctx.bezierCurveTo(-bw * 0.3, -bodyH / 2 - noseH * 0.4, -bw, -bodyH / 2 - 2, -bw, -bodyH / 2);
     ctx.lineTo(bw, -bodyH / 2);
+    ctx.bezierCurveTo(bw, -bodyH / 2 - 2, bw * 0.3, -bodyH / 2 - noseH * 0.4, 0, -bodyH / 2 - noseH);
     ctx.closePath();
     ctx.fill();
 
-    // Fins
-    ctx.fillStyle = '#445570';
+    // Nose tip accent
+    ctx.fillStyle = 'rgba(239, 68, 86, 0.8)';
+    ctx.beginPath();
+    ctx.arc(0, -bodyH / 2 - noseH + 2, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Fins — sleeker
+    ctx.fillStyle = '#4a5870';
     // Left fin
     ctx.beginPath();
-    ctx.moveTo(-bw, bodyH / 2 - finH * 0.3);
-    ctx.lineTo(-bw - finW, bodyH / 2);
+    ctx.moveTo(-bw, bodyH / 2 - bodyH * 0.15);
+    ctx.lineTo(-bw - finW, bodyH / 2 + 2);
     ctx.lineTo(-bw, bodyH / 2);
     ctx.closePath();
     ctx.fill();
     // Right fin
     ctx.beginPath();
-    ctx.moveTo(bw, bodyH / 2 - finH * 0.3);
-    ctx.lineTo(bw + finW, bodyH / 2);
+    ctx.moveTo(bw, bodyH / 2 - bodyH * 0.15);
+    ctx.lineTo(bw + finW, bodyH / 2 + 2);
     ctx.lineTo(bw, bodyH / 2);
     ctx.closePath();
     ctx.fill();
 
     // Engine nozzle
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = '#2a3040';
     ctx.beginPath();
-    ctx.moveTo(-bw * 0.6, bodyH / 2);
-    ctx.lineTo(-bw * 0.8, bodyH / 2 + rh * 0.06);
-    ctx.lineTo(bw * 0.8, bodyH / 2 + rh * 0.06);
-    ctx.lineTo(bw * 0.6, bodyH / 2);
+    ctx.moveTo(-bw * 0.5, bodyH / 2);
+    ctx.lineTo(-bw * 0.7, bodyH / 2 + rh * 0.05);
+    ctx.lineTo(bw * 0.7, bodyH / 2 + rh * 0.05);
+    ctx.lineTo(bw * 0.5, bodyH / 2);
     ctx.closePath();
     ctx.fill();
 
     // Exhaust plume
     if (isBoosting) {
-        const plumeTop = bodyH / 2 + rh * 0.05;
-        const plumeLen = rh * (0.4 + Math.random() * 0.25);
-        const plumeW = bw * (0.7 + Math.random() * 0.3);
+        const plumeTop = bodyH / 2 + rh * 0.04;
+        const plumeLen = rh * (0.5 + Math.random() * 0.3);
+        const plumeW = bw * (0.65 + Math.random() * 0.25);
 
         // Outer plume
         const grad = ctx.createLinearGradient(0, plumeTop, 0, plumeTop + plumeLen);
-        grad.addColorStop(0, 'rgba(255, 136, 50, 0.9)');
-        grad.addColorStop(0.4, 'rgba(255, 80, 20, 0.6)');
-        grad.addColorStop(1, 'rgba(255, 50, 10, 0)');
+        grad.addColorStop(0, 'rgba(94, 168, 212, 0.7)');
+        grad.addColorStop(0.2, 'rgba(255, 160, 80, 0.6)');
+        grad.addColorStop(0.6, 'rgba(239, 68, 86, 0.3)');
+        grad.addColorStop(1, 'rgba(239, 68, 86, 0)');
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.moveTo(-plumeW, plumeTop);
-        ctx.quadraticCurveTo(-plumeW * 0.3, plumeTop + plumeLen * 0.7, 0, plumeTop + plumeLen);
-        ctx.quadraticCurveTo(plumeW * 0.3, plumeTop + plumeLen * 0.7, plumeW, plumeTop);
+        ctx.quadraticCurveTo(-plumeW * 0.2, plumeTop + plumeLen * 0.7, 0, plumeTop + plumeLen);
+        ctx.quadraticCurveTo(plumeW * 0.2, plumeTop + plumeLen * 0.7, plumeW, plumeTop);
         ctx.closePath();
         ctx.fill();
 
-        // Inner core
-        const coreGrad = ctx.createLinearGradient(0, plumeTop, 0, plumeTop + plumeLen * 0.6);
-        coreGrad.addColorStop(0, 'rgba(255, 230, 180, 0.95)');
-        coreGrad.addColorStop(1, 'rgba(255, 200, 100, 0)');
+        // Inner core — white hot
+        const coreGrad = ctx.createLinearGradient(0, plumeTop, 0, plumeTop + plumeLen * 0.5);
+        coreGrad.addColorStop(0, 'rgba(255, 248, 240, 0.9)');
+        coreGrad.addColorStop(1, 'rgba(200, 220, 255, 0)');
         ctx.fillStyle = coreGrad;
         ctx.beginPath();
-        ctx.moveTo(-plumeW * 0.35, plumeTop);
-        ctx.quadraticCurveTo(0, plumeTop + plumeLen * 0.5, 0, plumeTop + plumeLen * 0.6);
-        ctx.quadraticCurveTo(0, plumeTop + plumeLen * 0.5, plumeW * 0.35, plumeTop);
+        ctx.moveTo(-plumeW * 0.3, plumeTop);
+        ctx.quadraticCurveTo(0, plumeTop + plumeLen * 0.4, 0, plumeTop + plumeLen * 0.5);
+        ctx.quadraticCurveTo(0, plumeTop + plumeLen * 0.4, plumeW * 0.3, plumeTop);
         ctx.closePath();
         ctx.fill();
 
-        // Glow
-        ctx.shadowColor = 'rgba(255, 120, 30, 0.5)';
-        ctx.shadowBlur = 25;
-        ctx.fillStyle = 'rgba(255, 150, 50, 0.15)';
-        ctx.fillRect(-plumeW * 2, plumeTop - 5, plumeW * 4, plumeLen * 0.5);
+        // Soft glow
+        ctx.shadowColor = 'rgba(94, 168, 212, 0.3)';
+        ctx.shadowBlur = 30;
+        ctx.fillStyle = 'rgba(94, 168, 212, 0.06)';
+        ctx.fillRect(-plumeW * 3, plumeTop - 5, plumeW * 6, plumeLen * 0.5);
         ctx.shadowBlur = 0;
     }
 
@@ -928,35 +1159,37 @@ function drawFlightScene() {
 
     if (w <= 0 || h <= 0) return;
 
-    // Clear
-    ctx.fillStyle = '#060610';
+    // Clear — deep void
+    ctx.fillStyle = '#05070e';
     ctx.fillRect(0, 0, w, h);
 
-    // Stars (fixed background)
-    ctx.fillStyle = '#aabbcc';
+    // Stars (subtle, dimmer than before)
     for (const s of stars) {
-        ctx.globalAlpha = s.a;
+        ctx.globalAlpha = s.a * 0.7;
+        ctx.fillStyle = '#8898b8';
         ctx.beginPath();
         ctx.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2);
         ctx.fill();
     }
     ctx.globalAlpha = 1;
 
-    // Determine view scale: show ground to max altitude with padding
+    // Determine view scale
     const viewMax = Math.max(20, state.maxAlt * 1.4, state.displayAlt * 1.4);
-    const groundY = h - 60;     // ground line position
-    const topY = 40;            // top margin
-    const scaleRange = groundY - topY; // pixels available
+    const groundY = h - 55;
+    const topY = 40;
+    const scaleRange = groundY - topY;
 
-    // Convert altitude to screen Y
     const altToY = (alt) => groundY - (alt / viewMax) * scaleRange;
 
-    // Ground
-    ctx.fillStyle = '#0a1420';
+    // Ground area
+    const groundGrad = ctx.createLinearGradient(0, groundY, 0, h);
+    groundGrad.addColorStop(0, '#0a1018');
+    groundGrad.addColorStop(1, '#060a10');
+    ctx.fillStyle = groundGrad;
     ctx.fillRect(0, groundY, w, h - groundY);
 
     // Ground line
-    ctx.strokeStyle = 'rgba(0, 200, 255, 0.2)';
+    ctx.strokeStyle = 'rgba(94, 168, 212, 0.12)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, groundY);
@@ -965,48 +1198,48 @@ function drawFlightScene() {
 
     // Launch pad
     const padX = w * 0.5;
-    ctx.strokeStyle = 'rgba(0, 200, 255, 0.4)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(94, 168, 212, 0.25)';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(padX - 20, groundY);
-    ctx.lineTo(padX + 20, groundY);
+    ctx.moveTo(padX - 18, groundY);
+    ctx.lineTo(padX + 18, groundY);
     ctx.stroke();
 
     // Pad center dot
-    ctx.fillStyle = 'rgba(0, 255, 136, 0.6)';
+    ctx.fillStyle = 'rgba(61, 220, 132, 0.5)';
     ctx.beginPath();
-    ctx.arc(padX, groundY, 3, 0, Math.PI * 2);
+    ctx.arc(padX, groundY, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Altitude grid lines
+    // Altitude grid lines — more subtle
     const niceSteps = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
     let step = niceSteps[0];
     for (const s of niceSteps) {
         if (viewMax / s <= 8) { step = s; break; }
     }
 
-    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.font = '9px Inter, sans-serif';
     ctx.textAlign = 'right';
     for (let a = step; a < viewMax; a += step) {
         const y = altToY(a);
         if (y < topY - 10 || y > groundY - 5) continue;
 
-        ctx.strokeStyle = 'rgba(0, 200, 255, 0.06)';
+        ctx.strokeStyle = 'rgba(94, 168, 212, 0.035)';
         ctx.lineWidth = 0.5;
         ctx.beginPath();
-        ctx.moveTo(40, y);
+        ctx.moveTo(44, y);
         ctx.lineTo(w, y);
         ctx.stroke();
 
-        ctx.fillStyle = 'rgba(200, 210, 230, 0.25)';
-        ctx.fillText(a + ' m', 36, y + 3);
+        ctx.fillStyle = 'rgba(180, 190, 210, 0.18)';
+        ctx.fillText(a + ' m', 40, y + 3);
     }
 
-    // Trail
+    // Trail — thinner dashed line
     if (state.displayAlt > 0.3) {
-        ctx.strokeStyle = 'rgba(0, 200, 255, 0.15)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = 'rgba(94, 168, 212, 0.1)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 5]);
         ctx.beginPath();
         ctx.moveTo(padX, groundY);
         ctx.lineTo(padX, altToY(state.displayAlt));
@@ -1017,19 +1250,17 @@ function drawFlightScene() {
     // Rocket position
     const rocketY = altToY(state.displayAlt);
     const isBoosting = state.flightState === 'BOOST';
-
-    // Rocket size: fixed pixel size that looks good (doesn't shrink with altitude)
     const rocketH = Math.max(36, Math.min(60, h * 0.08));
-    const tiltRad = (state.gyro.z * 0.0001); // subtle tilt from gyro
+    const tiltRad = (state.gyro.z * 0.0001);
 
     drawRocket(ctx, padX, rocketY, rocketH, isBoosting, tiltRad);
 
     // Altitude callout next to rocket
     if (state.displayAlt > 0.5) {
-        ctx.font = '11px JetBrains Mono, monospace';
+        ctx.font = '10px Inter, sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillStyle = 'rgba(0, 200, 255, 0.7)';
-        ctx.fillText(state.displayAlt.toFixed(1) + ' m', padX + rocketH * 0.4 + 8, rocketY + 4);
+        ctx.fillStyle = 'rgba(94, 168, 212, 0.5)';
+        ctx.fillText(state.displayAlt.toFixed(1) + ' m', padX + rocketH * 0.4 + 10, rocketY + 3);
     }
 }
 
@@ -1041,30 +1272,26 @@ const HUD_INTERVAL = 50; // ~20fps for DOM updates
 function animate(timestamp) {
     requestAnimationFrame(animate);
 
-    // Proper delta time for frame-rate-independent interpolation
     const dt = lastFrameTime ? (timestamp - lastFrameTime) / 1000 : 0.016;
     lastFrameTime = timestamp;
     const now = performance.now();
 
-    // --- Interpolation: predict position between 2Hz EKF updates ---
+    // Interpolation: predict position between 2Hz EKF updates
     const dtSinceEkf = (now - state.lastEkfTime) / 1000;
     const interpDt = Math.min(dtSinceEkf, 0.6);
     const predictedAlt = Math.max(0, state.altitude + state.velocity * interpDt);
     const predictedVel = state.velocity + state.accelInput * 9.81 * interpDt;
 
-    // Exponential smoothing using actual frame dt for consistent feel
-    const smoothFactor = 1 - Math.exp(-8 * dt); // ~8Hz cutoff, frame-rate independent
+    // Exponential smoothing
+    const smoothFactor = 1 - Math.exp(-8 * dt);
     state.displayAlt += (predictedAlt - state.displayAlt) * smoothFactor;
     state.displayVel += (predictedVel - state.displayVel) * smoothFactor;
     state.displayAcc += (state.accelInput - state.displayAcc) * smoothFactor;
 
-    // Clamp: rocket can't go underground
     state.displayAlt = Math.max(0, state.displayAlt);
 
-    // Draw the 2D scene every frame
     drawFlightScene();
 
-    // Throttle DOM updates
     if (now - lastHudUpdate > HUD_INTERVAL) {
         lastHudUpdate = now;
         updateHUD();
@@ -1072,12 +1299,10 @@ function animate(timestamp) {
 }
 
 function updateHUD() {
-    // Big numbers on viewport — use smoothly interpolated values
     $('hud-alt-val').textContent = state.displayAlt.toFixed(1);
     $('hud-vel-val').textContent = state.displayVel.toFixed(1);
     $('hud-acc-val').textContent = state.displayAcc.toFixed(2);
 
-    // Sidebar EKF — show raw telemetry values
     $('tlm-alt').textContent = state.altitude.toFixed(2) + ' m';
     $('tlm-vel').textContent = state.velocity.toFixed(2) + ' m/s';
     $('tlm-accel-in').textContent = state.accelInput.toFixed(2) + ' g';
@@ -1089,7 +1314,7 @@ function updateHUD() {
     if (state.launchDetected && state.uptime > 0) {
         missionMs = state.uptime - state.launchTick;
     } else if (state.uptime > 0) {
-        missionMs = -state.uptime;  // count down before launch
+        missionMs = -state.uptime;
     } else {
         missionMs = 0;
     }
@@ -1109,7 +1334,14 @@ function updateHUD() {
 // GRAPH RENDERING
 // =========================================================================
 
-function drawGraph(canvasId, data, color, unit) {
+// Color palette matching the new design system
+const graphColors = {
+    alt: { line: '#5ea8d4', glow: 'rgba(94, 168, 212, 0.12)' },
+    vel: { line: '#3ddc84', glow: 'rgba(61, 220, 132, 0.12)' },
+    acc: { line: '#e8a838', glow: 'rgba(232, 168, 56, 0.12)' },
+};
+
+function drawGraph(canvasId, data, colorKey, unit) {
     const canvas = $(canvasId);
     const ctx = canvas.getContext('2d');
     const w = canvas.clientWidth;
@@ -1127,6 +1359,8 @@ function drawGraph(canvasId, data, color, unit) {
 
     if (data.length < 2) return;
 
+    const colors = graphColors[colorKey];
+
     // Find range
     let min = Infinity, max = -Infinity;
     for (const v of data) {
@@ -1139,8 +1373,8 @@ function drawGraph(canvasId, data, color, unit) {
     min -= pad;
     max += pad;
 
-    // Grid lines
-    ctx.strokeStyle = 'rgba(0, 200, 255, 0.06)';
+    // Grid lines — very subtle
+    ctx.strokeStyle = 'rgba(100, 130, 180, 0.04)';
     ctx.lineWidth = 0.5;
     for (let i = 0; i <= 4; i++) {
         const y = h * (i / 4);
@@ -1150,8 +1384,25 @@ function drawGraph(canvasId, data, color, unit) {
         ctx.stroke();
     }
 
+    // Fill under the line
+    const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
+    fillGrad.addColorStop(0, colors.glow);
+    fillGrad.addColorStop(1, 'transparent');
+
+    ctx.fillStyle = fillGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (let i = 0; i < data.length; i++) {
+        const x = (i / (data.length - 1)) * w;
+        const y = h - ((data[i] - min) / (max - min)) * h;
+        ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+
     // Data line
-    ctx.strokeStyle = color;
+    ctx.strokeStyle = colors.line;
     ctx.lineWidth = 1.5;
     ctx.lineJoin = 'round';
     ctx.beginPath();
@@ -1164,43 +1415,26 @@ function drawGraph(canvasId, data, color, unit) {
     }
     ctx.stroke();
 
-    // Glow effect
-    ctx.strokeStyle = color.replace('1)', '0.15)').replace('rgb', 'rgba');
-    if (!ctx.strokeStyle.includes('rgba')) {
-        ctx.strokeStyle = color;
-        ctx.globalAlpha = 0.15;
-    }
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    for (let i = 0; i < data.length; i++) {
-        const x = (i / (data.length - 1)) * w;
-        const y = h - ((data[i] - min) / (max - min)) * h;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    ctx.globalAlpha = 1.0;
-
     // Current value label
     const lastVal = data[data.length - 1];
-    ctx.fillStyle = 'rgba(200, 210, 230, 0.5)';
-    ctx.font = '9px JetBrains Mono, monospace';
+    ctx.fillStyle = 'rgba(180, 190, 210, 0.4)';
+    ctx.font = '9px Inter, sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText(lastVal.toFixed(1) + ' ' + unit, w - 2, 10);
 
     // Min/Max labels
-    ctx.fillStyle = 'rgba(200, 210, 230, 0.2)';
+    ctx.fillStyle = 'rgba(180, 190, 210, 0.15)';
     ctx.fillText(max.toFixed(0), w - 2, 18);
     ctx.fillText(min.toFixed(0), w - 2, h - 2);
 }
 
 function updateGraphs() {
-    drawGraph('graph-alt', state.altHistory, '#00c8ff', 'm');
-    drawGraph('graph-vel', state.velHistory, '#00ff88', 'm/s');
-    drawGraph('graph-acc', state.accHistory, '#ff8833', 'g');
+    drawGraph('graph-alt', state.altHistory, 'alt', 'm');
+    drawGraph('graph-vel', state.velHistory, 'vel', 'm/s');
+    drawGraph('graph-acc', state.accHistory, 'acc', 'g');
 }
 
-// Update graphs at 5 Hz (charts don't need high framerate)
+// Update graphs at 5 Hz
 setInterval(updateGraphs, 200);
 
 // =========================================================================
