@@ -257,10 +257,14 @@ def telemetry_reader(stream):
     """Read binary stream, decode packets, publish to bus."""
     parser = CustomProtocolParser()
 
+    # Use the underlying raw/unbuffered stream so reads return as soon as
+    # any bytes are available instead of blocking until 256 bytes accumulate.
+    raw = getattr(stream, 'buffer', stream)   # BufferedReader → raw
+    raw = getattr(raw, 'raw', raw)            # unwrap to RawIOBase if possible
+
     try:
         while True:
-            # Read in chunks for much better throughput
-            data = stream.read(256)
+            data = raw.read(256)
             if not data:
                 break
             for byte_val in data:

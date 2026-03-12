@@ -753,6 +753,7 @@ const state = {
     historyMax: 400,
 
     // Dead-reckoning anchor — set on each EKF arrival, used every frame
+    hasEkf: false,      // true once first EKF packet arrives
     anchorAlt: 0,       // altitude (m) at anchor time
     anchorVel: 0,       // velocity (m/s) at anchor time
     anchorAcc: 0,       // accel (g) at anchor time
@@ -807,6 +808,7 @@ function handleTelemetry(msg) {
             state.maxVel = Math.max(state.maxVel, Math.abs(state.velocity));
 
             // Set dead-reckoning anchor
+            state.hasEkf = true;
             state.anchorAlt = state.altitude;
             state.anchorVel = state.velocity;
             state.anchorAcc = state.accelInput;
@@ -1198,11 +1200,15 @@ function animate(timestamp) {
     const now = performance.now();
 
     // Dead-reckoning from anchor state — no blending, no stutter
-    const dtSinceAnchor = Math.min((now - state.anchorTime) / 1000, 0.6);
-    const aMs2 = state.anchorAcc * 9.81;
-    state.displayAlt = Math.max(0, state.anchorAlt + state.anchorVel * dtSinceAnchor + 0.5 * aMs2 * dtSinceAnchor * dtSinceAnchor);
-    state.displayVel = state.anchorVel + aMs2 * dtSinceAnchor;
-    state.displayAcc = state.anchorAcc;
+    if (state.hasEkf) {
+        const dtSinceAnchor = Math.min((now - state.anchorTime) / 1000, 1.5);
+        // On PAD, skip acceleration term so gravity doesn't cause phantom altitude
+        const useAcc = state.flightState !== 'PAD';
+        const aMs2 = useAcc ? state.anchorAcc * 9.81 : 0;
+        state.displayAlt = Math.max(0, state.anchorAlt + state.anchorVel * dtSinceAnchor + 0.5 * aMs2 * dtSinceAnchor * dtSinceAnchor);
+        state.displayVel = state.anchorVel + aMs2 * dtSinceAnchor;
+        state.displayAcc = state.anchorAcc;
+    }
 
     drawFlightScene();
 
