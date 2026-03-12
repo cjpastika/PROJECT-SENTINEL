@@ -259,16 +259,26 @@ def telemetry_reader(stream):
 
     # Use os.read() on the raw file descriptor — guaranteed to return as soon
     # as *any* bytes are available (no Python buffering layer in the way).
-    fd = stream.fileno()
+    try:
+        fd = stream.fileno()
+        use_fd = True
+        print("[DIAG] telemetry_reader started (os.read mode)")
+    except Exception:
+        use_fd = False
+        raw = getattr(stream, 'buffer', stream)
+        raw = getattr(raw, 'raw', raw)
+        print("[DIAG] telemetry_reader started (fallback read mode)")
 
     read_bytes = 0
     pkt_count = 0
+    cksum_errors = 0
     last_diag = time.time()
 
     try:
         while True:
-            data = os.read(fd, 4096)
+            data = os.read(fd, 4096) if use_fd else raw.read(4096)
             if not data:
+                print("[DIAG] EOF on telemetry stream")
                 break
             read_bytes += len(data)
             for byte_val in data:
@@ -276,7 +286,8 @@ def telemetry_reader(stream):
 
             for pkt in parser.get_packets():
                 if isinstance(pkt[0], str):
-                    continue  # skip checksum errors
+                    cksum_errors += 1
+                    continue
                 msg_id, payload = pkt
                 pkt_count += 1
                 name = MSG_NAMES.get(msg_id, f"0x{msg_id:02X}")
@@ -297,16 +308,19 @@ def telemetry_reader(stream):
                 elapsed = now - last_diag
                 print(f"[DIAG] {read_bytes/elapsed:.0f} B/s, "
                       f"{pkt_count/elapsed:.1f} pkt/s, "
-                      f"chunk={len(data)}B")
+                      f"errs={cksum_errors}, chunk={len(data)}B",
+                      flush=True)
                 read_bytes = 0
                 pkt_count = 0
+                cksum_errors = 0
                 last_diag = now
 
-    except (OSError, ValueError):
-        pass
+    except Exception as e:
+        print(f"[DIAG] telemetry_reader exception: {e}", flush=True)
 
     # Signal end of stream
     telemetry_bus.publish({"type": "EOF", "data": {}, "t": 0})
+    print("[DIAG] telemetry_reader exited", flush=True)
 
 
 # ---------------------------------------------------------------------------
