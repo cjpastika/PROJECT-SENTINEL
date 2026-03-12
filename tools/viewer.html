@@ -757,6 +757,12 @@ const state = {
     displayVel: 0,
     displayAcc: 0,
     lastEkfTime: 0,     // performance.now() when last EKF arrived
+
+    // Correction blending — smooth out prediction-to-measurement jumps
+    corrAlt: 0,         // altitude correction offset (predicted - measured)
+    corrVel: 0,         // velocity correction offset
+    corrStartTime: 0,   // when correction blending began
+    corrDuration: 150,  // ms to blend out the correction
 };
 
 // ---- DOM refs ----
@@ -796,10 +802,21 @@ function handleTelemetry(msg) {
     const t = d.timestamp_ms || d.tick_ms || 0;
 
     switch (msg.type) {
-        case 'EKF':
-            state.altitude = Math.max(0, d.altitude_mm / 1000);
-            state.velocity = d.velocity_mms / 1000;
+        case 'EKF': {
+            const newAlt = Math.max(0, d.altitude_mm / 1000);
+            const newVel = d.velocity_mms / 1000;
             state.accelInput = d.accel_input_mg / 1000;
+
+            // Compute correction: how far off was our prediction?
+            // Blend this error out over corrDuration ms for jerk-free transitions.
+            if (state.lastEkfTime > 0) {
+                state.corrAlt = state.displayAlt - newAlt;
+                state.corrVel = state.displayVel - newVel;
+                state.corrStartTime = performance.now();
+            }
+
+            state.altitude = newAlt;
+            state.velocity = newVel;
             state.maxAlt = Math.max(state.maxAlt, state.altitude);
             state.maxVel = Math.max(state.maxVel, Math.abs(state.velocity));
             state.lastEkfTime = performance.now();
@@ -813,7 +830,7 @@ function handleTelemetry(msg) {
                 state.accelInput = 0;
             }
             break;
-
+        }
         case 'IMU':
             state.accelZ = d.accel_z_mg / 1000;
             state.gyro.x = d.gyro_x_mdps / 1000;
@@ -1192,16 +1209,20 @@ function animate(timestamp) {
     // Interpolation: predict position between 2Hz EKF updates
     const dtSinceEkf = (now - state.lastEkfTime) / 1000;
     const interpDt = Math.min(dtSinceEkf, 0.6);
-    const predictedAlt = Math.max(0, state.altitude + state.velocity * interpDt);
+    const predictedAlt = state.altitude + state.velocity * interpDt;
     const predictedVel = state.velocity + state.accelInput * 9.81 * interpDt;
 
-    // Exponential smoothing
-    const smoothFactor = 1 - Math.exp(-8 * dt);
-    state.displayAlt += (predictedAlt - state.displayAlt) * smoothFactor;
-    state.displayVel += (predictedVel - state.displayVel) * smoothFactor;
-    state.displayAcc += (state.accelInput - state.displayAcc) * smoothFactor;
+    // Correction blending: linearly blend out the prediction-to-measurement
+    // error noted when the last EKF arrived, avoiding discontinuous jumps.
+    let corrAlpha = 0;
+    if (state.corrStartTime > 0) {
+        const elapsed = now - state.corrStartTime;
+        corrAlpha = Math.max(0, 1 - elapsed / state.corrDuration);
+    }
 
-    state.displayAlt = Math.max(0, state.displayAlt);
+    state.displayAlt = Math.max(0, predictedAlt + state.corrAlt * corrAlpha);
+    state.displayVel = predictedVel + state.corrVel * corrAlpha;
+    state.displayAcc = state.accelInput;
 
     drawFlightScene();
 
