@@ -45,14 +45,7 @@ int main(void)
     hal_uart_init();
     hal_gpio_init();
 
-    /* Boot banner */
-    hal_uart_send_string("\n");
-    hal_uart_send_string("========================================\n");
-    hal_uart_send_string("  PROJECT SENTINEL - Flight Computer\n");
-    hal_uart_send_string("  Target: LM3S6965 / Cortex-M3 (QEMU)\n");
-    hal_uart_send_string("  FreeRTOS Kernel v" tskKERNEL_VERSION_NUMBER "\n");
-    hal_uart_send_string("========================================\n");
-    hal_uart_send_string("[BOOT] Initializing RTOS tasks...\n");
+    /* Boot — no UART banner (per-byte MMIO throttles QEMU speed) */
 
     /* Create tasks */
     xTaskCreate(task_led_blink, "LED_BLINK", STACK_SIZE_DEFAULT,
@@ -63,11 +56,9 @@ int main(void)
 
     /* Fault manager: centralized anomaly recording */
     fault_mgr_init();
-    hal_uart_send_string("[BOOT] Fault manager initialized.\n");
 
     /* Data logger: simulated flash circular buffer */
     datalog_init();
-    hal_uart_send_string("[BOOT] Flash data logger initialized (4 KB).\n");
 
     fault_record(FAULT_SEV_INFO, FAULT_SRC_SYSTEM,
                  FAULT_DETAIL_BOOT, 0);
@@ -75,33 +66,24 @@ int main(void)
     /* Sensor subsystem: IMU sampling (50 Hz) + telemetry (2 Hz) */
     sensor_task_init();
     sensor_tlm_task_init();
-    hal_uart_send_string("[BOOT] Sensor tasks created.\n");
 
     /* Command handler: UART RX parser + dispatcher */
     cmd_handler_init();
-    hal_uart_send_string("[BOOT] Command handler ready (press '?' for help).\n");
 
     /* Flight state machine: mission mode manager */
     flight_sm_init();
-    hal_uart_send_string("[BOOT] Flight state machine ready.\n");
 
     /* EKF: 1D altitude estimator (50 Hz, fuses accel Z) */
     ekf_task_init();
-    hal_uart_send_string("[BOOT] EKF altitude estimator started.\n");
 
     /* TMR: Triple Modular Redundancy voter over 3 EKF channels */
     tmr_ekf_init();
-    hal_uart_send_string("[BOOT] TMR voting (3-channel EKF) started.\n");
 
     /* CCSDS: Space packet protocol framing layer */
     ccsds_init();
-    hal_uart_send_string("[BOOT] CCSDS-lite space packet framing enabled.\n");
 
     /* Task watchdog: software timer monitors task deadlines */
     watchdog_init();
-    hal_uart_send_string("[BOOT] Task watchdog started.\n");
-
-    hal_uart_send_string("[BOOT] Starting scheduler.\n\n");
 
     /* Start FreeRTOS — should never return */
     vTaskStartScheduler();

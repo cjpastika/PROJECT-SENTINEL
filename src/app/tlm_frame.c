@@ -2,9 +2,7 @@
  * Telemetry framing — packet builder and transmitter
  *
  * Constructs binary telemetry packets with sync word, message ID,
- * length, payload, and XOR checksum.  Uses ARM semihosting to write
- * the entire frame in a single host trap, avoiding the per-byte MMIO
- * overhead of the UART which throttles QEMU emulation speed.
+ * length, payload, and XOR checksum, then sends them over UART.
  */
 
 #include "tlm_frame.h"
@@ -12,30 +10,6 @@
 #include "datalog.h"
 #include "ccsds.h"
 #include <string.h>
-
-/* ---- ARM semihosting: write buffer to stdout in one host call ---- */
-static void semihost_write_buf(const uint8_t *buf, uint32_t len)
-{
-    /*
-     * ARM semihosting SYS_WRITE (0x05):
-     *   args[0] = file handle (1 = stdout)
-     *   args[1] = pointer to data
-     *   args[2] = length
-     * Returns number of bytes NOT written (0 on success).
-     */
-    volatile uint32_t args[3];
-    args[0] = 1;                 /* stdout */
-    args[1] = (uint32_t)buf;
-    args[2] = len;
-    __asm volatile (
-        "mov  r0, #0x05\n"      /* SYS_WRITE */
-        "mov  r1, %0\n"
-        "bkpt #0xAB\n"
-        : /* no outputs */
-        : "r" (args)
-        : "r0", "r1", "memory"
-    );
-}
 
 /* ---- Compute XOR checksum over msg_id + length + payload ---- */
 static uint8_t compute_checksum(uint8_t msg_id, const uint8_t *payload, uint8_t len)
@@ -68,8 +42,8 @@ void tlm_send(uint8_t msg_id, const void *payload, uint8_t len)
     pos += len;
     frame[pos++] = compute_checksum(msg_id, p, len);
 
-    /* Single semihosting call writes the entire frame at once */
-    semihost_write_buf(frame, pos);
+    /* Send entire frame via UART */
+    hal_uart_send_bytes(frame, pos);
 
     /* Also send as CCSDS space packet (msg_id maps directly to APID) */
     if (ccsds_get_enabled()) {

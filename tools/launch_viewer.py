@@ -273,7 +273,6 @@ def telemetry_reader(stream):
     pkt_count = 0
     cksum_errors = 0
     last_diag = time.time()
-    dump_count = 0  # hex dump first few chunks
 
     try:
         while True:
@@ -282,14 +281,6 @@ def telemetry_reader(stream):
                 print("[DIAG] EOF on telemetry stream")
                 break
             read_bytes += len(data)
-
-            # Hex dump first 5 chunks to see what QEMU is actually sending
-            if dump_count < 5:
-                hex_str = ' '.join(f'{b:02X}' for b in data[:64])
-                ascii_str = ''.join(chr(b) if 32 <= b < 127 else '.' for b in data[:64])
-                print(f"[DUMP#{dump_count}] ({len(data)}B) {hex_str}")
-                print(f"[DUMP#{dump_count}] ASCII: {ascii_str}")
-                dump_count += 1
             for byte_val in data:
                 parser.feed(byte_val)
 
@@ -447,7 +438,6 @@ def launch_qemu():
             "qemu-system-arm",
             "-machine", "lm3s6965evb",
             "-nographic",
-            "-semihosting",
             "-kernel", elf,
         ],
         stdout=subprocess.PIPE,
