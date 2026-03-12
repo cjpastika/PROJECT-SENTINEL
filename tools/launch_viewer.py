@@ -257,16 +257,20 @@ def telemetry_reader(stream):
     """Read binary stream, decode packets, publish to bus."""
     parser = CustomProtocolParser()
 
-    # Use the underlying raw/unbuffered stream so reads return as soon as
-    # any bytes are available instead of blocking until 256 bytes accumulate.
-    raw = getattr(stream, 'buffer', stream)   # BufferedReader → raw
-    raw = getattr(raw, 'raw', raw)            # unwrap to RawIOBase if possible
+    # Use os.read() on the raw file descriptor — guaranteed to return as soon
+    # as *any* bytes are available (no Python buffering layer in the way).
+    fd = stream.fileno()
+
+    read_bytes = 0
+    pkt_count = 0
+    last_diag = time.time()
 
     try:
         while True:
-            data = raw.read(256)
+            data = os.read(fd, 4096)
             if not data:
                 break
+            read_bytes += len(data)
             for byte_val in data:
                 parser.feed(byte_val)
 
@@ -274,6 +278,7 @@ def telemetry_reader(stream):
                 if isinstance(pkt[0], str):
                     continue  # skip checksum errors
                 msg_id, payload = pkt
+                pkt_count += 1
                 name = MSG_NAMES.get(msg_id, f"0x{msg_id:02X}")
                 decoder = DECODERS.get(msg_id)
                 if decoder:
@@ -285,6 +290,18 @@ def telemetry_reader(stream):
                             "data": fields,
                             "t": time.time() - telemetry_bus.start_time,
                         })
+
+            # Diagnostic: print throughput every 5 seconds
+            now = time.time()
+            if now - last_diag >= 5.0:
+                elapsed = now - last_diag
+                print(f"[DIAG] {read_bytes/elapsed:.0f} B/s, "
+                      f"{pkt_count/elapsed:.1f} pkt/s, "
+                      f"chunk={len(data)}B")
+                read_bytes = 0
+                pkt_count = 0
+                last_diag = now
+
     except (OSError, ValueError):
         pass
 

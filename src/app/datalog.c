@@ -21,7 +21,7 @@
 static uint8_t flash_buffer[DATALOG_FLASH_SIZE];
 static uint32_t write_pos = 0;
 static datalog_stats_t stats;
-static uint8_t autolog_enabled = 1;
+static uint8_t autolog_enabled = 0;
 
 /* Mutex for thread-safe access */
 static SemaphoreHandle_t log_mutex = NULL;
