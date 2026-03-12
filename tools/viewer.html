@@ -1202,9 +1202,11 @@ function animate(timestamp) {
     // Dead-reckoning from anchor state — no blending, no stutter
     if (state.hasEkf) {
         const dtSinceAnchor = Math.min((now - state.anchorTime) / 1000, 1.5);
-        // On PAD, skip acceleration term so gravity doesn't cause phantom altitude
-        const useAcc = state.flightState !== 'PAD';
-        const aMs2 = useAcc ? state.anchorAcc * 9.81 : 0;
+        // On ground states, skip acceleration so gravity doesn't cause phantom altitude
+        const grounded = state.flightState === 'IDLE' || state.flightState === 'ARMED' || state.flightState === 'LANDED';
+        // Subtract 1 g from raw accel to get net forward acceleration (EKF reports raw including gravity)
+        const netAccG = grounded ? 0 : (state.anchorAcc - 1.0);
+        const aMs2 = netAccG * 9.81;
         state.displayAlt = Math.max(0, state.anchorAlt + state.anchorVel * dtSinceAnchor + 0.5 * aMs2 * dtSinceAnchor * dtSinceAnchor);
         state.displayVel = state.anchorVel + aMs2 * dtSinceAnchor;
         state.displayAcc = state.anchorAcc;
@@ -1223,9 +1225,9 @@ function updateHUD() {
     $('hud-vel-val').textContent = state.displayVel.toFixed(1);
     $('hud-acc-val').textContent = state.displayAcc.toFixed(2);
 
-    $('tlm-alt').textContent = state.altitude.toFixed(2) + ' m';
-    $('tlm-vel').textContent = state.velocity.toFixed(2) + ' m/s';
-    $('tlm-accel-in').textContent = state.accelInput.toFixed(2) + ' g';
+    $('tlm-alt').textContent = state.displayAlt.toFixed(2) + ' m';
+    $('tlm-vel').textContent = state.displayVel.toFixed(2) + ' m/s';
+    $('tlm-accel-in').textContent = state.displayAcc.toFixed(2) + ' g';
     $('tlm-max-alt').textContent = state.maxAlt.toFixed(1) + ' m';
     $('tlm-max-vel').textContent = state.maxVel.toFixed(1) + ' m/s';
 

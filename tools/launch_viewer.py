@@ -450,7 +450,7 @@ def main():
         reader_thread.start()
 
     # Start HTTP server
-    server = http.server.HTTPServer(("127.0.0.1", args.port), ViewerHandler)
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", args.port), ViewerHandler)
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
 
