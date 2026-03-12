@@ -438,6 +438,7 @@ def launch_qemu():
             "qemu-system-arm",
             "-machine", "lm3s6965evb",
             "-nographic",
+            "-semihosting",
             "-kernel", elf,
         ],
         stdout=subprocess.PIPE,
