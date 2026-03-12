@@ -34,9 +34,6 @@ void hal_uart_send_char(char c)
 void hal_uart_send_string(const char *str)
 {
     while (*str) {
-        if (*str == '\n') {
-            hal_uart_send_char('\r');
-        }
         hal_uart_send_char(*str++);
     }
 }

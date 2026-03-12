@@ -108,20 +108,7 @@ void fault_record(fault_severity_t sev, uint8_t source,
     total_events++;
     taskEXIT_CRITICAL();
 
-    /* Log to UART */
-    hal_uart_send_string("[FAULT:");
-    hal_uart_send_string(sev_names[sev]);
-    hal_uart_send_string("] src=0x");
-    send_hex8(source);
-    hal_uart_send_string(" det=0x");
-    send_hex8(detail);
-    hal_uart_send_string(" data=0x");
-    send_hex8(data);
-    hal_uart_send_string(" t=");
-    send_uint32(evt.tick_ms);
-    hal_uart_send_string("ms\n");
-
-    /* Send as telemetry packet */
+    /* Send as telemetry packet (no UART debug — reduces QEMU overhead) */
     tlm_send(TLM_MSG_FAULT_EVENT, &evt, sizeof(evt));
 }
 

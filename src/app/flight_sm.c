@@ -60,12 +60,6 @@ static volatile uint8_t arm_requested = 0;
 /* ---- Emit state transition telemetry ---- */
 static void emit_transition(flight_state_t from, flight_state_t to, int32_t accel_z)
 {
-    hal_uart_send_string("[FSM] ");
-    hal_uart_send_string(state_names[from]);
-    hal_uart_send_string(" -> ");
-    hal_uart_send_string(state_names[to]);
-    hal_uart_send_string("\n");
-
     tlm_flight_state_t pkt;
     pkt.state      = (uint8_t)to;
     pkt.prev_state = (uint8_t)from;
@@ -177,7 +171,6 @@ static void task_flight_sm(void *params)
     /* Auto-arm after 2 seconds for demo purposes */
     vTaskDelay(pdMS_TO_TICKS(2000));
     if (current_state == FLIGHT_IDLE) {
-        hal_uart_send_string("[FSM] Auto-arming for demo\n");
         flight_sm_arm();
     }
 
