@@ -752,11 +752,14 @@ const state = {
     timeHistory: [],
     historyMax: 400,
 
-    // Interpolation state — telemetry is 2Hz, we interpolate at 60fps
+    // Dead-reckoning anchor — set on each EKF arrival, used every frame
+    anchorAlt: 0,       // altitude (m) at anchor time
+    anchorVel: 0,       // velocity (m/s) at anchor time
+    anchorAcc: 0,       // accel (g) at anchor time
+    anchorTime: 0,      // performance.now() when anchor was set
     displayAlt: 0,
     displayVel: 0,
     displayAcc: 0,
-    lastEkfTime: 0,     // performance.now() when last EKF arrived
 };
 
 // ---- DOM refs ----
@@ -802,7 +805,12 @@ function handleTelemetry(msg) {
             state.accelInput = d.accel_input_mg / 1000;
             state.maxAlt = Math.max(state.maxAlt, state.altitude);
             state.maxVel = Math.max(state.maxVel, Math.abs(state.velocity));
-            state.lastEkfTime = performance.now();
+
+            // Set dead-reckoning anchor
+            state.anchorAlt = state.altitude;
+            state.anchorVel = state.velocity;
+            state.anchorAcc = state.accelInput;
+            state.anchorTime = performance.now();
 
             pushHistory(t / 1000, state.altitude, state.velocity, state.accelInput);
 
@@ -1189,19 +1197,12 @@ function animate(timestamp) {
     lastFrameTime = timestamp;
     const now = performance.now();
 
-    // Interpolation: predict position between 2Hz EKF updates
-    const dtSinceEkf = (now - state.lastEkfTime) / 1000;
-    const interpDt = Math.min(dtSinceEkf, 0.6);
-    const predictedAlt = Math.max(0, state.altitude + state.velocity * interpDt);
-    const predictedVel = state.velocity + state.accelInput * 9.81 * interpDt;
-
-    // Exponential smoothing
-    const smoothFactor = 1 - Math.exp(-8 * dt);
-    state.displayAlt += (predictedAlt - state.displayAlt) * smoothFactor;
-    state.displayVel += (predictedVel - state.displayVel) * smoothFactor;
-    state.displayAcc += (state.accelInput - state.displayAcc) * smoothFactor;
-
-    state.displayAlt = Math.max(0, state.displayAlt);
+    // Dead-reckoning from anchor state — no blending, no stutter
+    const dtSinceAnchor = Math.min((now - state.anchorTime) / 1000, 0.6);
+    const aMs2 = state.anchorAcc * 9.81;
+    state.displayAlt = Math.max(0, state.anchorAlt + state.anchorVel * dtSinceAnchor + 0.5 * aMs2 * dtSinceAnchor * dtSinceAnchor);
+    state.displayVel = state.anchorVel + aMs2 * dtSinceAnchor;
+    state.displayAcc = state.anchorAcc;
 
     drawFlightScene();
 
