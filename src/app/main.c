@@ -150,7 +150,7 @@ static void task_heartbeat(void *params)
         hb.pad[1] = 0;
         hb.pad[2] = 0;
 
-        tlm_send_debug(TLM_MSG_HEARTBEAT, &hb, sizeof(hb));
+        tlm_send(TLM_MSG_HEARTBEAT, &hb, sizeof(hb));
 
         watchdog_checkin(wdg);
         beat++;

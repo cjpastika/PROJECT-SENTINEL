@@ -82,7 +82,7 @@ static void wdg_timer_callback(TimerHandle_t xTimer)
                 pkt.pad       = 0;
                 pkt.missed_ms = (elapsed_ms > 0xFFFF) ? 0xFFFF : (uint16_t)elapsed_ms;
                 pkt.tick_ms   = (uint32_t)now;
-                tlm_send_debug(TLM_MSG_WDG_FAULT, &pkt, sizeof(pkt));
+                tlm_send(TLM_MSG_WDG_FAULT, &pkt, sizeof(pkt));
             }
         } else {
             /* Task is healthy — clear fault flag if it recovered */

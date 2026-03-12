@@ -21,7 +21,7 @@
 static uint16_t seq_counter = 0;
 static uint32_t packets_sent = 0;
 static uint32_t bytes_sent = 0;
-static uint8_t  ccsds_enabled = 1;
+static uint8_t  ccsds_enabled = 0;
 
 /* ================================================================
  * CRC-16/CCITT

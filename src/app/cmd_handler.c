@@ -47,7 +47,7 @@ static void send_ack(uint8_t cmd_id, uint8_t result)
     resp.pad    = 0;
 
     uint8_t msg_type = (result == 0) ? TLM_MSG_CMD_ACK : TLM_MSG_CMD_NACK;
-    tlm_send_debug(msg_type, &resp, sizeof(resp));
+    tlm_send(msg_type, &resp, sizeof(resp));
 }
 
 /* ---- Command handlers ---- */
@@ -78,7 +78,7 @@ static void handle_status_req(void)
     hb.pad[1] = 0;
     hb.pad[2] = 0;
 
-    tlm_send_debug(TLM_MSG_HEARTBEAT, &hb, sizeof(hb));
+    tlm_send(TLM_MSG_HEARTBEAT, &hb, sizeof(hb));
     send_ack(CMD_STATUS_REQ, 0);
 }
 
@@ -224,7 +224,7 @@ static void handle_shortcut(char c)
         pkt.disagree_count = 0;
         pkt.pad[0] = 0;
         pkt.pad[1] = 0;
-        tlm_send_debug(TLM_MSG_TMR, &pkt, sizeof(pkt));
+        tlm_send(TLM_MSG_TMR, &pkt, sizeof(pkt));
         break;
     }
     case 'c':
@@ -234,7 +234,7 @@ static void handle_shortcut(char c)
         ccsds_get_stats(&stats);
         hal_uart_send_string("[CMD] CCSDS: pkts=");
         /* Simple decimal print using existing send_ack */
-        tlm_send_debug(TLM_MSG_CCSDS_STATS, &stats, sizeof(stats));
+        tlm_send(TLM_MSG_CCSDS_STATS, &stats, sizeof(stats));
         break;
     }
     case '?':

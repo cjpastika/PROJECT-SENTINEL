@@ -122,7 +122,7 @@ void fault_record(fault_severity_t sev, uint8_t source,
     hal_uart_send_string("ms\n");
 
     /* Send as telemetry packet */
-    tlm_send_debug(TLM_MSG_FAULT_EVENT, &evt, sizeof(evt));
+    tlm_send(TLM_MSG_FAULT_EVENT, &evt, sizeof(evt));
 }
 
 /* ================================================================
@@ -191,7 +191,7 @@ void fault_send_summary(void)
     }
     pkt.tick_ms = (uint32_t)xTaskGetTickCount();
 
-    tlm_send_debug(TLM_MSG_FAULT_SUMMARY, &pkt, sizeof(pkt));
+    tlm_send(TLM_MSG_FAULT_SUMMARY, &pkt, sizeof(pkt));
 }
 
 /* ================================================================

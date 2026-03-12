@@ -73,7 +73,7 @@ static void emit_transition(flight_state_t from, flight_state_t to, int32_t acce
     pkt.tick_ms    = (uint32_t)xTaskGetTickCount();
     pkt.accel_z_mg = accel_z;
 
-    tlm_send_debug(TLM_MSG_FLIGHT_STATE, &pkt, sizeof(pkt));
+    tlm_send(TLM_MSG_FLIGHT_STATE, &pkt, sizeof(pkt));
 }
 
 /* ---- Transition helper ---- */

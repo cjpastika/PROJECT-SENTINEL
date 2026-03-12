@@ -171,7 +171,7 @@ static void task_tmr_ekf(void *params)
             pkt.pad[0] = 0;
             pkt.pad[1] = 0;
 
-            tlm_send_debug(TLM_MSG_TMR, &pkt, sizeof(pkt));
+            tlm_send(TLM_MSG_TMR, &pkt, sizeof(pkt));
         }
 
         watchdog_checkin(wdg);

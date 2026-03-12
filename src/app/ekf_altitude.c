@@ -167,7 +167,7 @@ static void task_ekf(void *params)
             pkt.velocity_mms   = (int32_t)(g_ekf.x[1] * 1000.0f);
             pkt.accel_input_mg = last_accel;
 
-            tlm_send_debug(TLM_MSG_EKF, &pkt, sizeof(pkt));
+            tlm_send(TLM_MSG_EKF, &pkt, sizeof(pkt));
         }
 
         watchdog_checkin(wdg);

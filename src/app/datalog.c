@@ -159,7 +159,7 @@ void datalog_dump(void)
         if (hdr.length > DATALOG_MAX_PAYLOAD) break;
 
         /* Re-send this entry as a framed telemetry packet */
-        tlm_send_debug(hdr.msg_id, &flash_buffer[pos + sizeof(hdr)], hdr.length);
+        tlm_send(hdr.msg_id, &flash_buffer[pos + sizeof(hdr)], hdr.length);
 
         count++;
         pos += entry_size;

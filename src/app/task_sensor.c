@@ -93,7 +93,7 @@ static void task_sensor_tlm(void *params)
             pkt.gyro_y       = latest.gyro.y;
             pkt.gyro_z       = latest.gyro.z;
 
-            tlm_send_debug(TLM_MSG_IMU, &pkt, sizeof(pkt));
+            tlm_send(TLM_MSG_IMU, &pkt, sizeof(pkt));
         }
 
         watchdog_checkin(wdg);
