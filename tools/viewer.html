@@ -1199,17 +1199,13 @@ function animate(timestamp) {
     lastFrameTime = timestamp;
     const now = performance.now();
 
-    // Dead-reckoning from anchor state — no blending, no stutter
+    // Exponential smoothing toward latest EKF values (no overshoot)
     if (state.hasEkf) {
-        const dtSinceAnchor = Math.min((now - state.anchorTime) / 1000, 1.5);
-        // On ground states, skip acceleration so gravity doesn't cause phantom altitude
-        const grounded = state.flightState === 'IDLE' || state.flightState === 'ARMED' || state.flightState === 'LANDED';
-        // Subtract 1 g from raw accel to get net forward acceleration (EKF reports raw including gravity)
-        const netAccG = grounded ? 0 : (state.anchorAcc - 1.0);
-        const aMs2 = netAccG * 9.81;
-        state.displayAlt = Math.max(0, state.anchorAlt + state.anchorVel * dtSinceAnchor + 0.5 * aMs2 * dtSinceAnchor * dtSinceAnchor);
-        state.displayVel = state.anchorVel + aMs2 * dtSinceAnchor;
-        state.displayAcc = state.anchorAcc;
+        const tau = 0.12; // smoothing time constant in seconds
+        const alpha = 1 - Math.exp(-dt / tau);
+        state.displayAlt = Math.max(0, state.displayAlt + (state.altitude - state.displayAlt) * alpha);
+        state.displayVel = state.displayVel + (state.velocity - state.displayVel) * alpha;
+        state.displayAcc = state.displayAcc + (state.accelInput - state.displayAcc) * alpha;
     }
 
     drawFlightScene();
